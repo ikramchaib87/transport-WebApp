@@ -1,0 +1,132 @@
+/* Styles pour l'overlay de la fenêtre modale */
+.bus-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Conteneur de la modale */
+.bus-modal-content {
+  background: #fff;
+  padding: 25px;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 650px;
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Titre de la modale */
+.bus-modal-content h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30px;
+  margin-top: 0;
+}
+
+/* Formulaire */
+.bus-form {
+  width: 100%;
+}
+
+.bus-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* Groupes de formulaire */
+.bus-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Labels */
+.bus-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+/* Inputs */
+.bus-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  height: 38px;
+}
+
+.bus-input:focus {
+  outline: none;
+  border-color: #ff7b00;
+}
+
+/* Zone des boutons */
+.bus-form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Bouton Annuler */
+.bus-btn-cancel {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.bus-btn-cancel:hover {
+  background: #f5f5f5;
+}
+
+/* Bouton Soumettre */
+.bus-btn-submit {
+  background: #ff7b00;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.bus-btn-submit:hover {
+  background: #e66a00;
+}
+
+/* Animation d'apparition */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bus-modal-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Media queries pour les écrans plus petits */
+@media (max-width: 768px) {
+  .bus-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .bus-modal-content {
+    width: 90%;
+    padding: 15px;
+  }
+}

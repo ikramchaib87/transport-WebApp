@@ -1,0 +1,511 @@
+/* Styles pour la barre de recherche et les boutons */
+.tranext-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.tranext-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tranext-search-bar input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 240px;
+}
+
+.tranext-search-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.tranext-add-bus-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background-color: #ff7b00;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.tranext-add-bus-btn:hover {
+  background-color: #e66a00;
+}
+
+/* Bouton pour basculer l'affichage des en-têtes */
+.tranext-toggle-headers-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background-color: #6b6b6b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.tranext-toggle-headers-btn:hover {
+  background-color: #555555;
+}
+
+/* Grille de filtres */
+.tranext-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.tranext-filter-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.tranext-filter-item label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.tranext-filter-item select,
+.tranext-filter-item input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tranext-date-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tranext-date-input svg {
+  position: absolute;
+  left: 8px;
+  color: #666;
+}
+
+.tranext-date-input input {
+  padding-left: 30px;
+  width: 100%;
+}
+
+/* Conteneur d'entreprise */
+.tranext-company-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+
+.tranext-company-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background-color: #f5f5f5;
+  cursor: pointer;
+}
+
+.tranext-company-header:hover {
+  background-color: #e9e9e9;
+}
+
+.tranext-company-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tranext-company-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.tranext-bus-count {
+  color: #ff7b00;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tranext-contract-dates {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Tableau */
+.tranext-table-container {
+  overflow-x: auto;
+}
+
+/* Style pour les cellules du tableau */
+.tranext-bus-info,
+.tranext-chauffeur-info,
+.tranext-contrat-info,
+.tranext-access-info {
+  padding: 15px;
+  vertical-align: top;
+}
+
+.tranext-info-main {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.tranext-info-details {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.tranext-company-tag {
+  margin-top: 8px;
+  font-weight: 500;
+  color: #ff7b00;
+}
+
+.tranext-label {
+  font-weight: 500;
+}
+
+.tranext-status {
+  margin-top: 8px;
+}
+
+.tranext-status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tranext-active {
+  color: #2e7d32;
+}
+
+.tranext-inactive {
+  color: #c62828;
+}
+
+.tranext-actions-cell {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 15px;
+}
+
+.tranext-edit-btn, 
+.tranext-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tranext-edit-btn:hover {
+  background-color: #e6f2ff;
+}
+
+.tranext-delete-btn:hover {
+  background-color: #fce8e8;
+}
+
+/* Pour les lignes alternées */
+.admin-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.admin-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Styles pour les boutons d'entreprise */
+.tranext-company-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tranext-delete-company-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tranext-delete-company-btn:hover {
+  background-color: #fce8e8;
+}
+
+/* Styles pour la modale d'ajout d'entreprise */
+.bus-modal-content h3 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30px;
+  margin-top: 0;
+}
+
+.tranext-modal-content input {
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tranext-add-company-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tranext-company-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.tranext-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tranext-form-group label {
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+}
+
+.tranext-form-group input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.tranext-form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.tranext-form-row .tranext-form-group {
+  flex: 1;
+}
+
+.tranext-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tranext-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tranext-btn-cancel {
+  background-color: #f1f1f1;
+  color: #333;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.tranext-chauffeur-photo {
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.chauffeur-photo {
+  width: 60px;  /* Consistent size */
+  height: 60px;
+  border-radius: 50%;  /* Circular shape */
+  object-fit: cover;  /* This is important to maintain aspect ratio */
+  border: 2px solid #f0f0f0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: block;  /* Ensure proper display */
+  margin: 0 auto;  /* Center the image */
+}
+
+.tranext-bus-info .tranext-info-details:last-child {
+  margin-top: 5px;
+  font-weight: 500;
+  color: #666;
+}
+/* Media Queries pour la responsivité */
+
+/* Pour les grands écrans (desktop) */
+@media screen and (min-width: 1200px) {
+  .tranext-filters-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Pour les tablettes et petits écrans */
+@media screen and (max-width: 1199px) and (min-width: 768px) {
+  .tranext-filters-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .tranext-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .tranext-search-bar {
+    order: 1;
+    margin-bottom: 10px;
+  }
+  
+  .tranext-company-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .tranext-company-actions {
+    align-self: flex-end;
+  }
+  
+  .tranext-form-row {
+    flex-direction: column;
+  }
+}
+
+/* Pour les téléphones mobiles */
+@media screen and (max-width: 767px) {
+  .tranext-filters-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tranext-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .tranext-search-bar {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .tranext-search-bar input {
+    width: 100%;
+  }
+  
+  .tranext-add-bus-btn, 
+  .tranext-toggle-headers-btn {
+    margin-left: 0;
+    justify-content: center;
+  }
+  
+  .tranext-company-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .tranext-company-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .tranext-company-actions {
+    align-self: stretch;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
+  .tranext-form-row {
+    flex-direction: column;
+  }
+  
+  /* Ajustements pour les tableaux sur mobile */
+  .tranext-table-container {
+    overflow-x: auto;
+  }
+  
+  .tranext-actions-cell {
+    flex-direction: column;
+  }
+  
+  /* Ajustements pour les modales sur mobile */
+  .tranext-modal-content {
+    padding: 15px;
+  }
+  
+  .bus-modal-content h3 {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+}
+
+/* Pour les très petits écrans */
+@media screen and (max-width: 480px) {
+  .tranext-company-name {
+    font-size: 14px;
+  }
+  
+  .tranext-contract-dates {
+    font-size: 12px;
+  }
+  
+  .tranext-info-main {
+    font-size: 14px;
+  }
+  
+  .tranext-info-details {
+    font-size: 12px;
+  }
+  
+  .tranext-form-group label {
+    font-size: 13px;
+  }
+  
+  .tranext-form-group input {
+    padding: 8px;
+    font-size: 13px;
+  }
+}

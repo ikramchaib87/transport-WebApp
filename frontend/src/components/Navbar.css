@@ -1,0 +1,155 @@
+/* Navbar.css */
+.navbar-container {
+  min-height: 100vh;
+  display: flex;
+  max-height: 100%;
+}
+
+.vertical-sidebar {
+  background-color: #ff8000;
+  color: white;
+  min-height: 100vh; /* Minimum height */
+  height: 100%; /* Take full height */
+  width: 200px;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  top: 0;
+}
+
+.vertical-sidebar.collapsed {
+  width: 60px;
+}
+
+.vertical-sidebar.mobile {
+  display: flex;
+  left: 0;
+  position: fixed; /* Fix position on mobile */
+  height: 100vh; /* Force full viewport height */
+}
+
+.vertical-sidebar.mobile.expanded {
+  width: 200px;
+}
+
+.vertical-sidebar.mobile.collapsed {
+  width: 60px;
+}
+
+.menu-toggle {
+  background: #ff8000;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 20px;
+  border-bottom: 1px solid #1f2a38;
+  display: none; /* Hide by default on desktop */
+}
+
+.mobile .menu-toggle {
+  display: block; /* Only show on mobile */
+}
+
+.icon-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1; /* Allow the menu to grow and fill available space */
+  overflow-y: auto; /* Add scrolling if needed */
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+/* Modification ici pour le hover - n'applique pas le survol aux éléments actifs */
+.menu-item:not(.active):hover {
+  background: wheat;
+}
+
+/* Modification du style actif pour qu'il se démarque mieux */
+.menu-item.active {
+  background: #bf6000; /* Une teinte plus foncée d'orange */
+  border-left: 4px solid white; /* Ajoute une bordure à gauche pour plus de visibilité */
+  font-weight: bold;
+}
+
+/* Ajout de style pour les sous-menus actifs */
+.submenu-item.active {
+  background: #d97016; /* Une teinte légèrement différente */
+  border-left: 4px solid white;
+  font-weight: bold;
+}
+
+.menu-link {
+  text-decoration: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.icon-wrapper {
+  font-size: 20px;
+  margin-right: 15px;
+}
+
+.menu-text {
+  font-size: 16px;
+}
+
+.arrow {
+  margin-left: auto;
+}
+
+.submenu-item {
+  padding-left: 30px;
+  margin: 10px;
+}
+
+/* Ajout de style de survol pour les sous-menus */
+.submenu-item:not(.active):hover {
+  background: wheat;
+  border-radius: 5px;
+}
+
+.page-content {
+  flex-grow: 1;
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+
+.page-content.shifted {
+  margin-left: 0;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .vertical-sidebar {
+    position: fixed;
+    z-index: 1000;
+    height: 100vh; /* Force 100% viewport height on mobile */
+  }
+  
+  .page-content {
+    margin-left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .page-content.shifted {
+    margin-left: 60px;
+  }
+  
+  /* Make sure body and html have full height */
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}

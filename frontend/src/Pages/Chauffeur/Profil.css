@@ -1,0 +1,188 @@
+.chauffeur{
+    display: flex;
+    background-color: #d9d9d9;
+    min-height: calc(100vh - 60px);
+  }
+  
+  .chauffeur-container {
+    flex-grow: 1;
+    background-color: #ffffff;
+    margin:auto;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 85%;
+    margin: 20px;
+    height: 100%;
+  }
+  
+  .chauffeur-title {
+    font-size: 1.8rem;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    border-bottom: 1px solid #FF7700;
+    padding-bottom: 0.8rem;
+  }
+  
+  .chauffeur-section {
+     margin-bottom: 1rem;
+    padding: 1.2rem;
+    border-radius: 6px;
+    background-color: #ffffff;
+    border: 1px solid #e6e9ed;
+  }
+  
+  /* Section avec l'avatar et les infos personnelles */
+  .chauffeur-section:first-of-type {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  
+  .chauffeur-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e6e9ed;
+  }
+  
+  .chauffeur-info {
+    flex-grow: 1;
+  }
+  
+  .chauffeur-info p {
+    margin: 0.5rem 0;
+    font-size: 1rem;
+    color: #4a5568;
+    line-height: 1.5;
+  }
+  
+  .chauffeur-section h3 {
+    font-size: 1.2rem;
+    color: #3e4c59;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    position: relative;
+    padding-bottom: 0.5rem;
+  }
+  
+  .chauffeur-section h3:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 2px;
+    background-color: #3182ce;
+  }
+  
+  /* Styles pour le statut */
+  .statu-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    background-color: #ebf5ff;
+    color: #2b6cb0;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  
+  .statu-badge.active {
+    background-color: #ffffff;
+    color: #047857;
+  }
+  
+  /* Tables de données */
+  .chauffeur-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+  }
+  
+  .chauffeur-table th,
+  .chauffeur-table td {
+    padding: 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid #e6e9ed;
+  }
+  
+  .chauffeur-table th {
+    background-color: #f9fafb;
+    font-weight: 500;
+    color: #4a5568;
+    width: 40%;
+  }
+  
+  .chauffeur-table tr:last-child th,
+  .chauffeur-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  /* Actions multiples */
+  .chauffeur-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-direction: column;
+  }
+  
+  /* Styles pour les liens */
+  .chauffeur-link {
+    display: inline-block;
+    padding: none;
+    background-color: rgb(255, 255, 255);
+    color: #89909e;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    flex: 1;
+    width: 200px;
+    text-align: left;
+  }
+  
+  .chauffeur-link:hover {
+    color: #FF7700;
+    transform: translate3d(-2px);
+  }
+  
+  /* Bouton de déconnexion */
+  .chauffeur-logout {
+    background-color: #FF7700;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  
+  .chauffeur-logout:hover {
+    background-color: #e76c00;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .chauffeur-section:first-of-type {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .chauffeur-container {
+      margin: 1rem;
+      padding: 1.2rem;
+      margin-left: 70px;
+    }
+    
+    .chauffeur-actions {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .chauffeur-link {
+      width: 100%;
+    }
+  }

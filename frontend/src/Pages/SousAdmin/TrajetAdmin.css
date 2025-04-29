@@ -1,0 +1,431 @@
+.trajet-admin-C {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  .main-C {
+    display: flex;
+    flex: 1;
+  }
+  
+  .trajet-C {
+    flex: 1;
+    padding: 20px;
+  }
+  
+  .page-title {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+  }
+  
+  
+  /* Vue Calendrier */
+  .calendar-view {
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 700px;
+   
+    overflow-y: auto;
+  }
+  
+  .calendar-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f2f2f2;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .calendar-navigation h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  
+  .nav-btn {
+    background-color: #4a6fdc;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .nav-btn:hover {
+    background-color: #3a5dba;
+  }
+  
+  .calendar-grid {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .calendar-header {
+    display: flex;
+  }
+  
+  .day-header {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-right: 1px solid #ddd;
+    background-color: #f9f9f9;
+  }
+  
+  .day-header:last-child {
+    border-right: none;
+  }
+  
+  .day-name {
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+  
+  .day-date {
+    font-size: 12px;
+    color: #666;
+  }
+  
+  .calendar-body {
+    display: flex;
+    height: 700px;
+   
+  }
+  
+  .day-column {
+    flex: 1;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+    height: 700px;
+    position: relative;
+  }
+  
+  .day-column:last-child {
+    border-right: none;
+  }
+  
+  .plan-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 1;
+  }
+  
+  .plan-btn:hover {
+    background-color: #218838;
+  }
+  
+  .no-reservations {
+    color: #999;
+    text-align: center;
+    padding: 20px 0;
+    font-style: italic;
+    margin-top: 30px;
+  }
+  
+  .calendar-reservation {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s;
+    margin-top: 30px;
+  }
+  
+  .calendar-reservation:hover {
+    transform: translateY(-2px);
+  }
+  
+  .calendar-reservation.scheduled {
+    background-color: #e6fff2;
+    border-left: 4px solid #00994d;
+  }
+  
+  .calendar-reservation.pending {
+    background-color: #fff2e6;
+    border-left: 4px solid #cc7000;
+  }
+  
+  .reservation-time {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .reservation-details {
+    font-size: 12px;
+  }
+  
+  /* Modal */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-C {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .planning-modal {
+    max-width: 800px;
+  }
+  
+  .close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #777;
+  }
+  
+  .close:hover {
+    color: #333;
+  }
+  
+  .reservation-details {
+    margin-bottom: 20px;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 6px;
+  }
+  
+  .transports-list {
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 6px;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+  
+  .transports-list table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .transports-list th, .transports-list td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eaeaea;
+  }
+  
+  .transports-list th {
+    position: sticky;
+    top: 0;
+    background-color: #f5f7fa;
+    font-weight: 600;
+    color: #4a5568;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+  
+  .transports-list tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+  
+  .transports-list tr:hover {
+    background-color: #f0f4ff;
+  }
+  
+  .transports-list tbody {
+    max-height: calc(300px - 40px);
+    overflow-y: auto;
+  }
+  
+  .select-btn {
+    background-color: #4a6fdc;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+  }
+  
+  .select-btn:hover {
+    background-color: #3a5dba;
+  }
+  
+  .selected-transport {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f2f2f2;
+    border-radius: 6px;
+  }
+  
+  .planning-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .form-group {
+    flex: 1 0 45%;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .save-btn, .cancel-btn, .back-btn, .delete-btn, .edit-btn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+  }
+  
+  .save-btn {
+    background-color: #4a6fdc;
+    color: white;
+  }
+  
+  .save-btn:hover {
+    background-color: #3a5dba;
+    transform: translateY(-1px);
+  }
+  
+  .back-btn {
+    background-color: #6c757d;
+    color: white;
+  }
+  
+  .back-btn:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+  }
+  
+  .cancel-btn {
+    background-color: #f2f2f2;
+    color: #333;
+  }
+  
+  .cancel-btn:hover {
+    background-color: #e6e6e6;
+    transform: translateY(-1px);
+  }
+  
+  /* Style du nouveau bouton de suppression */
+  .delete-btn {
+    background-color: #dc3545;
+    color: white;
+    margin-right: auto; /* Le bouton de suppression sera à gauche */
+  }
+  
+  .delete-btn:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+  }
+  .station-management {
+    margin: 20px 0;
+    border: 1px solid #eaeaea;
+    border-radius: 6px;
+    padding: 15px;
+  }
+  
+  .stations-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+  }
+  
+  .station-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #eaeaea;
+    align-items: center;
+  }
+  
+  .station-item .form-group {
+    flex: 1 0 200px;
+  }
+  
+  .add-station-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  
+  .delete-station-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .stations-details {
+    margin-top: 20px;
+  }
+  
+  .stations-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  
+  .stations-table th, .stations-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .stations-table th {
+    background-color: #f2f2f2;
+    font-weight: 500;
+  }

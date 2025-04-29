@@ -1,0 +1,91 @@
+.reservation-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    width: 600px;
+    z-index: 1000;
+  }
+  
+  .reservation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+  
+  .reservation-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 15px;
+  }
+  
+  .reservation-section {
+    margin-bottom: 20px;
+  }
+  
+  .reservation-section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: orange;
+    margin-bottom: 10px;
+  }
+  
+  .reservation-select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #f8f8f8;
+  }
+  
+  .reservation-input-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+  }
+  
+  .reservation-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+  }
+  
+  .reservation-input:last-child {
+    margin-right: 0;
+  }
+  
+  .reservation-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  
+  .reservation-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .reservation-cancel {
+    background: #ccc;
+    margin-right: 10px;
+  }
+  
+  .reservation-submit {
+    background: orange;
+    color: white;
+  }
+  

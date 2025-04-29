@@ -1,0 +1,70 @@
+.ad{
+  display: flex;
+  flex: 1;
+  
+}
+.ad-container {
+  background-color: #FFFFFF;
+  padding: 30px;
+  border-radius: 8px;
+  width: 85%;
+  margin-top: 35px;
+  height: 700px;
+  }
+  
+  .title {
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  .underline {
+    border-bottom: 3px solid #ff800cd0;
+  }
+  
+  .total {
+    color: gray;
+    font-size: 16px;
+  }
+  
+  .count {
+    font-weight: bold;
+  }
+  
+  .search-bar {
+    display: flex;
+    justify-content: right;
+    margin-bottom: 10px;
+  }
+  
+  .search-bar input {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .search-bar button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+  }
+  
+  .admin-table th, .admin-table td {
+    padding: 5px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  
+  .admin-table thead {
+    background: #e0e0e0;
+  }
+  
+  .gray-row {
+    background-color: #ddd;
+  }
+  

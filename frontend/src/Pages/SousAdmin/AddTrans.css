@@ -1,0 +1,200 @@
+/* Styles pour le bouton de fermeture */
+.close-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #666;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .close-button:hover {
+    color: #333;
+  }
+  
+  /* En-tête de la modale avec positionnement relatif pour le bouton de fermeture */
+  .modal-header {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  
+  /* Styles pour les indicateurs d'étapes */
+  .form-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+  
+  .step {
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #eee;
+    color: #666;
+    font-weight: bold;
+    margin-right: 10px;
+    transition: all 0.3s ease;
+  }
+  
+  .step.active .step-number {
+    background-color: #ff7b00;
+    color: white;
+  }
+  
+  .step.completed .step-number {
+    background-color: #4caf50;
+    color: white;
+  }
+  
+  .step-title {
+    font-size: 14px;
+    color: #666;
+    transition: all 0.3s ease;
+  }
+  
+  .step.active .step-title {
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .step-line {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #eee;
+    margin: 0 15px;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+  
+  .step-line.completed {
+    background-color: #4caf50;
+  }
+  
+  /* Container pour les inputs de date avec icône */
+  .date-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .date-input {
+    padding-right: 35px; /* Espace pour l'icône */
+    width: 100%;
+  }
+  
+  .date-icon {
+    position: absolute;
+    right: 10px;
+    color: #999;
+    pointer-events: none;
+  }
+  
+  /* Styles pour les messages d'erreur */
+  .error-message {
+    color: #e53935;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+  
+  .bus-input.error {
+    border-color: #e53935;
+  }
+  
+  /* Boutons de navigation entre les étapes */
+  .bus-btn-previous {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    margin-right: auto;
+  }
+  
+  .bus-btn-previous:hover {
+    background: #f5f5f5;
+  }
+  
+  .bus-btn-next {
+    background: #ff7b00;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .bus-btn-next:hover {
+    background: #e66a00;
+  }
+
+  /* Styles pour l'ajout d'entreprise dans le formulaire */
+.company-select-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+/* Style pour le conteneur d'upload de photo */
+.photo-upload {
+  margin-bottom: 20px;
+}
+
+.photo-input-container {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.photo-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.photo-upload-label {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.photo-upload-label:hover {
+  background-color: #0056b3;
+}
+
+.photo-preview {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  object-fit: cover;
+}

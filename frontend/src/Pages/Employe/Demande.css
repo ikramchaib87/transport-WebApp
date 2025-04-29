@@ -1,0 +1,422 @@
+.demande {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* Header styling - unchanged as requested */
+.demande-header {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.demande-logo {
+  padding: 10px 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 75px;
+  background-color: #D9D9D9;
+}
+
+.demande-logo img {
+  max-width: 150px;
+  height: auto;
+}
+
+.demande-title {
+  flex: 1;
+  background-color: #ff8000;
+  color: white;
+  padding: 20px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Form container */
+.demande-container {
+  display: flex;
+  justify-content: center;
+  padding: 15px 20px;
+}
+
+.demande-form-box {
+  width: 100%;
+  max-width: 1000px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+.transport-title {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Top layout structure */
+.demande-content {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.demande-left-column {
+  flex: 3;
+}
+
+.demande-right-column {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Bottom section - all the rest of the form */
+.bottom-section {
+  margin-bottom: 30px;
+}
+
+.address-section {
+  margin-bottom: 20px;
+}
+
+/* Form groups and inputs */
+.form-group {
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #333;
+}
+
+.form-group input, 
+.form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ff8000;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group input::placeholder {
+  color: #aaa;
+}
+
+/* Email verification button */
+.email-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.email-input-group input {
+  flex: 1;
+}
+
+.btn-verify {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 15px;
+  color: #555;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.btn-verify:hover {
+  background-color: #e6e6e6;
+}
+
+/* Address row with 3 columns */
+.address-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.address-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Employment details section */
+.employment-details {
+  margin-top: 20px;
+}
+
+.employee-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.employee-row .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Checkbox styling */
+.checkbox-group {
+  margin-top: 20px;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  position: relative;
+  padding-left: 30px;
+  cursor: pointer;
+}
+
+.checkbox-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+}
+
+.checkbox-container:hover input ~ .checkmark {
+  background-color: #f5f5f5;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+  background-color: #ff8000;
+  border-color: #ff8000;
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.checkbox-container .checkmark:after {
+  left: 7px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.label-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* Upload area styling */
+.upload-container {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-title {
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.upload-area {
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  background-color: #fafafa;
+  min-height: 200px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-icon {
+  margin: 15px 0;
+}
+
+.upload-formats {
+  font-size: 12px;
+  color: #777;
+  margin-top: 10px;
+}
+
+.file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Button container */
+.button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  background-color:  #f5f5f5;
+  color: #f5f5f5;
+  border-color: #707070;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.btn-submit {
+  background-color: #ff8000;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.btn-cancel:hover {
+  background-color: #D9D9D9;
+}
+
+.btn-submit:hover {
+  background-color: #e67300;
+}
+
+.btn-cancel a {
+  text-decoration: none;
+  color: #555;
+}
+/* Style pour le conteneur du code de vérification */
+.verification-code-container {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+}
+
+.verification-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.verification-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.btn-verify-code {
+  background-color: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn-verify-code:hover {
+  background-color: #2d3748;
+}
+
+.btn-verify-code:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.verification-help {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #718096;
+}
+/* Responsiveness */
+@media (max-width: 768px) {
+  .demande-content {
+    flex-direction: column;
+  }
+  
+  .address-row,
+  .employee-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .demande-logo {
+    padding: 10px;
+    width: 100px;
+  }
+  
+  .demande-logo img {
+    max-width: 80px;
+  }
+}
+/* Message d'erreur global */
+.error-message {
+  display: none;
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border-left: 4px solid #d32f2f;
+  font-size: 14px;
+}
+
+.error-message.show {
+  display: block;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Style pour les champs avec erreur */
+.form-group input.error, 
+.form-group select.error {
+  border-color: #d32f2f;
+  background-color: #fff8f8;
+}
