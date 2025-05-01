@@ -161,7 +161,7 @@ const Lignes = () => {
     try {
       setLoading(true);
       // Utiliser l'URL complète pour éviter les problèmes de proxy
-      const response = await fetch('http://localhost:3002/api/lines');
+      const response = await fetch('http://localhost:5000/api/lines');
       
       // Log pour le débogage
       console.log('Response status:', response.status);
@@ -215,8 +215,8 @@ const Lignes = () => {
     
     try {
       const url = lineData.id ? 
-        `http://localhost:3002/api/lines/${lineData.id}` : 
-        'http://localhost:3002/api/lines';
+        `http://localhost:5000/api/lines/${lineData.id}` : 
+        'http://localhost:5000/api/lines';
       const method = lineData.id ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
@@ -246,7 +246,7 @@ const Lignes = () => {
     }
     
     try {
-      const response = await fetch(`http://localhost:3002/api/lines/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/lines/${id}`, {
         method: 'DELETE',
       });
       

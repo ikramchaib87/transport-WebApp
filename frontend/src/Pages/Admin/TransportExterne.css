@@ -374,6 +374,159 @@
   font-weight: 500;
   color: #666;
 }
+
+/* Styles pour le modal d'affectation */
+
+.tranext-assign-modal h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.tranext-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.line-select-dropdown {
+  width: 100%;
+  padding: 10px 15px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.line-select-dropdown:focus {
+  outline: none;
+  
+}
+
+.line-select-dropdown:hover {
+  border-color: #888;
+}
+
+.tranext-form-group {
+  margin-bottom: 20px;
+}
+
+.tranext-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+.tranext-confirm-btn {
+  background-color: #ff9e0c;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tranext-confirm-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.tranext-cancel-btn {
+  background-color: #61605f;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Style pour le bouton d'affectation dans le tableau */
+.tranext-assign-btn {
+  background-color: none;
+  color: rgb(107, 107, 107);
+  border: none;
+  border-radius: 4px;
+  padding: 5px;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.tranext-assign-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Style for the option elements */
+.line-select-option {
+  padding: 10px 15px;
+  font-size: 15px;
+  background-color: #fff;
+  color: #333;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.line-select-option:hover {
+  background-color: #f5f7fa;
+}
+
+.line-select-option:checked {
+  background-color: #e6f0ff;
+  font-weight: 500;
+}
+
+/* First option (placeholder) styling */
+.line-select-option:first-child {
+  color: #757575;
+}
+
+.tranext-form-group {
+  margin-bottom: 20px;
+}
+
+.tranext-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.tranext-assignment-message {
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+.tranext-assignment-message.success {
+  color: #179b36;
+}
+
+.tranext-assignment-message.error {
+  color: #ff0019;
+}
+
+.tranext-line-info {
+  vertical-align: top;
+  padding: 10px;
+  min-width: 150px;
+}
+
+.tranext-line-info div {
+  margin-bottom: 5px;
+}
+
+.tranext-no-line {
+  color: #888;
+  font-style: italic;
+}
+
 /* Media Queries pour la responsivité */
 
 /* Pour les grands écrans (desktop) */
