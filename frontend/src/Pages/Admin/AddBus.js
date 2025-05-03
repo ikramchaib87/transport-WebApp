@@ -12,6 +12,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
     type: "",
     annee: "",
     kilometrage: "",
+    nb_places:"",
     statue: ""
   });
 
@@ -32,6 +33,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
         type: "",
         annee: "",
         kilometrage: "",
+        nb_places:"",
         statue: "disponible"
       });
     }
@@ -80,7 +82,9 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
     if (formData.kilometrage && (isNaN(formData.kilometrage) || parseInt(formData.kilometrage) < 0)) {
       newErrors.kilometrage = "Kilométrage invalide";
     }
-    
+    if (formData.nb_places && (isNaN(formData.nb_places) || parseInt(formData.nb_places) < 0)) {
+      newErrors.nb_places = "nb_places invalide";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -107,6 +111,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
         
         <form onSubmit={handleSubmit} className="bus-form">
           <div className="bus-form-grid">
+            {/* Le champ ID est caché car géré automatiquement */}
             {busToEdit && (
               <input 
                 type="hidden" 
@@ -213,6 +218,17 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 onChange={handleChange}
               />
               {errors.kilometrage && <span className="error-text">{errors.kilometrage}</span>}
+            </div>
+            <div className="bus-form-group">
+              <label className="bus-label">nb_places</label>
+              <input 
+                type="number" 
+                name="nb_places" 
+                className={`bus-input ${errors.nb_places ? "input-error" : ""}`}
+                value={formData.nb_places} 
+                onChange={handleChange}
+              />
+              {errors.nb_places&& <span className="error-text">{errors.nb_places}</span>}
             </div>
           </div>
 

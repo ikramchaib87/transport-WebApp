@@ -1,4 +1,4 @@
-import React, { useState, useEffect, } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard,
   Users,
@@ -21,16 +21,18 @@ const Navbar = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
-  // Auto-open submenu if we're on a submenu page
-  const isSubmenuRoute = () => {
+  // Memoize the isSubmenuRoute function with useCallback
+  const isSubmenuRoute = useCallback(() => {
     const submenuPaths = [
       "/AdminRoutes/bus", 
       "/AdminRoutes/chauffeurs",
       "/SousAdminRoutes/bus",
-      "/SousAdminRoutes/chauffeurs"
+      "/SousAdminRoutes/chauffeurs",
+      "/AdminRoutes/Affectation",
+      "/SousAdminRoutes/Affectation"
     ];
     return submenuPaths.some(path => location.pathname === path);
-  };
+  }, [location.pathname]);
   
   // Initialize submenu state based on current route
   const [showTransportSubMenu, setShowTransportSubMenu] = useState(isSubmenuRoute());
@@ -40,7 +42,7 @@ const Navbar = () => {
     if (isSubmenuRoute()) {
       setShowTransportSubMenu(true);
     }
-  }, [location.pathname]);
+  }, [isSubmenuRoute]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -78,7 +80,7 @@ const Navbar = () => {
         { name: "Employes", path: "/AdminRoutes/Employes", icon: <User /> },
         { name: "Transport Interne", path: "#", icon: <Bus />, hasSubmenu: true },
         { name: "Transport Externe", path: "/AdminRoutes/TransportExterne", icon: <Bus /> },
-        { name: "Réservation", path: "/AdminRoutes/Reservation", icon: <Notebook/> },
+        { name: "Lignes", path: "/AdminRoutes/Lignes", icon: <Notebook/> },
         { name: "Trajets", path: "/AdminRoutes/TrajetAdmin", icon: <Route /> },
         { name: "Demande", path: "/AdminRoutes/Demande", icon: <Mail /> },
         { name: "Réclamation", path: "/AdminRoutes/Reclamation", icon: <AlertTriangle /> }
@@ -125,7 +127,8 @@ const Navbar = () => {
   const isSubmenuActive = () => {
     const activePaths = [
       isAdmin ? "/AdminRoutes/bus" : "/SousAdminRoutes/bus",
-      isAdmin ? "/AdminRoutes/chauffeurs" : "/SousAdminRoutes/chauffeurs"
+      isAdmin ? "/AdminRoutes/chauffeurs" : "/SousAdminRoutes/chauffeurs",
+      isAdmin ? "/AdminRoutes/Affectation" : "/SousAdminRoutes/Affectation"
     ];
     
     return activePaths.includes(location.pathname);
@@ -167,6 +170,12 @@ const Navbar = () => {
                     <Link to={isAdmin ? "/AdminRoutes/chauffeurs" : "/SousAdminRoutes/chauffeurs"} className="menu-link">
                       <div className="icon-wrapper"><User /></div>
                       <span className="menu-text">Chauffeurs</span>
+                    </Link>
+                  </li>
+                  <li className={`submenu-item ${isItemActive(isAdmin ? "/AdminRoutes/Affectation" : "/SousAdminRoutes/Affectation") ? "active" : ""}`}>
+                    <Link to={isAdmin ? "/AdminRoutes/Affectation" : "/SousAdminRoutes/Affectation"} className="menu-link">
+                      <div className="icon-wrapper"><Notebook /></div>
+                      <span className="menu-text">Affectation</span>
                     </Link>
                   </li>
                 </>

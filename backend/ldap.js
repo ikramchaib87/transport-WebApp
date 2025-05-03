@@ -1,4 +1,4 @@
-const express = require ('express');
+const express = require('express');
 const ldap = require('ldapjs');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
@@ -13,12 +13,16 @@ const fs = require('fs');
 const multer = require('multer');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ====================================================
+// CONFIGURATIONS
+// ====================================================
+
 // Configuration LDAP
 const LDAP_URL = 'ldap://192.168.100.5';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 const LDAP_GROUP_BASE = 'ou=Group,dc=contoso-lab,dc=com';
 
-// Définir les groupes autorisés pour LDAP
+// les groupes autorisés pour LDAP
 const AUTHORIZED_GROUPS = {
   'admin': 'cn=admin,ou=Group,dc=contoso-lab,dc=com',
   'supadmin': 'cn=supadmin,ou=Group,dc=contoso-lab,dc=com',
@@ -44,7 +48,13 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// Initialize database tables if they don't exist
+// ====================================================
+// INITIALISATION DE LA BASE DE DONNÉES
+// ====================================================
+
+/**
+ * Initialise les tables de la base de données si elles n'existent pas
+ */
 async function initDatabase() {
   const client = await pool.connect();
   try {
@@ -82,6 +92,26 @@ async function initDatabase() {
         UNIQUE(bus_id, line_id)
       )
     `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS trajets (
+        id SERIAL PRIMARY KEY,
+        ligne_id INTEGER REFERENCES lines(id) ON DELETE SET NULL,
+        ligne_number VARCHAR(10),
+        depart VARCHAR(255) NOT NULL,
+        arrivee VARCHAR(255) NOT NULL,
+        jours VARCHAR(100) NOT NULL,
+        heure_depart TIME NOT NULL,
+        heure_arrivee TIME NOT NULL,
+        duree VARCHAR(50) NOT NULL,
+        chauffeur VARCHAR(255),
+        vehicule VARCHAR(255),
+        statut VARCHAR(50) DEFAULT 'Actif',
+        arrets JSONB,
+        remarques TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     console.log('Tables vérifiées/créées avec succès');
   } catch (error) {
     console.error('Erreur lors de l\'initialisation des tables:', error);
@@ -90,10 +120,17 @@ async function initDatabase() {
   }
 }
 
-// Initialize the database at startup
 initDatabase();
 
-// Utility function to get a complete line with its stops
+// ====================================================
+// FONCTIONS UTILITAIRES
+// ====================================================
+
+/**
+ * Récupère une ligne complète avec ses arrêts
+ * ID de la ligne
+ * Ligne avec ses arrêts ou null si non trouvée
+ */
 async function getCompleteLineById(id) {
   const lineResult = await pool.query('SELECT * FROM lines WHERE id = $1', [id]);
   
@@ -113,7 +150,7 @@ async function getCompleteLineById(id) {
 
 // Fonction pour vérifier si un utilisateur est membre d'un groupe
 async function checkGroupMembership(client, username) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => { 
     const roles = {};
     let completed = 0;
     const totalGroups = Object.keys(AUTHORIZED_GROUPS).length;
@@ -181,6 +218,81 @@ async function checkGroupMembership(client, username) {
   });
 }
 
+async function checkTransportRequest(username) {
+  try {
+    console.log(`[LDAP] Recherche des infos employé pour: ${username}`);
+    
+    // 1. Créer une connexion LDAP propre
+    const client = ldap.createClient({ url: LDAP_URL });
+    
+    try {
+      // 2. Récupérer le matricule depuis LDAP
+      const userInfo = await new Promise((resolve, reject) => {
+        client.search(LDAP_SEARCH_BASE, {
+          filter: `(uid=${username})`,
+          scope: 'sub',
+          attributes: ['uidNumber', 'uid'] // uidNumber est utilisé comme matricule
+        }, (err, res) => {
+          if (err) return reject(err);
+          
+          let userData = { username };
+          
+          res.on('searchEntry', (entry) => {
+            entry.attributes.forEach(attr => {
+              if (attr.type === 'uidNumber') {
+                userData.matricule = attr.values[0];
+              }
+            });
+          });
+          
+          res.on('error', reject);
+          res.on('end', () => resolve(userData));
+        });
+      });
+
+      if (!userInfo.matricule) {
+        console.log('[ERREUR] Aucun matricule (uidNumber) trouvé dans LDAP');
+        return { exists: false, approved: false };
+      }
+
+      console.log(`[LDAP] Matricule trouvé: ${userInfo.matricule} pour ${username}`);
+
+      // 3. Vérifier la demande avec le matricule
+      const requestCheck = await pool.query(
+        `SELECT statut FROM transport_requests 
+         WHERE matricule = $1 
+         ORDER BY date_soumission DESC 
+         LIMIT 1`,
+        [userInfo.matricule]
+      );
+
+      if (requestCheck.rows.length === 0) {
+        console.log('[POSTGRES] Aucune demande trouvée pour ce matricule');
+        return { exists: false, approved: false };
+      }
+
+      const status = requestCheck.rows[0].statut;
+      console.log(`[POSTGRES] Statut trouvé: "${status}"`);
+
+      // 4. Comparaison insensible à la casse pour "Approuvée"
+      // Utilisation de trim() pour supprimer les espaces supplémentaires
+      const isApproved = status.toString().trim().toLowerCase() === 'approuvée';
+      
+      return {
+        exists: true,
+        approved: isApproved,
+        rawStatus: status
+      };
+    } finally {
+      // 5. S'assurer que la connexion LDAP est toujours fermée
+      client.unbind();
+    }
+  } catch (error) {
+    console.error('[ERREUR] checkTransportRequest:', error);
+    throw error;
+  }
+}
+
 // Fonction pour échapper les caractères spéciaux dans les filtres LDAP
 function escapeLDAPFilter(input) {
   if (!input) return input;
@@ -192,8 +304,11 @@ function escapeLDAPFilter(input) {
     .replace(/\0/g, '\\0');
 }
 
-//---------------------------------------login-------------------------------------------------------------------
-// Route d'authentification hybride
+// ====================================================
+// ROUTES D'AUTHENTIFICATION ET UTILISATEURS
+// ====================================================
+
+// Authentification hybride (PostgreSQL + LDAP)
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   
@@ -409,6 +524,47 @@ app.post('/api/login', async (req, res) => {
                   });
                 }
                 
+                if (role === 'employe') {
+                  try {
+                    console.log(`[AUTH] Vérification transport pour employé: ${username}`);
+                    
+                    const request = await checkTransportRequest(username);
+                    
+                    if (!request.exists) {
+                      console.log('[AUTH] Refus - aucune demande trouvée');
+                      authClient.unbind();
+                      return res.status(403).json({
+                        success: false,
+                        errorType: 'transport_request',
+                        message: 'Aucune demande de transport enregistrée pour votre compte'
+                      });
+                    }
+                
+                    if (!request.approved) {
+                      console.log(`[AUTH] Refus - statut: ${request.rawStatus}`);
+                      authClient.unbind();
+                      
+                      return res.status(403).json({
+                        success: false,
+                        errorType: 'transport_request',
+                        message: request.rawStatus.toLowerCase().includes('rejet') ?
+                          'Votre demande a été refusée. Contactez le service transport.' :
+                          'Votre demande est en cours de traitement (statut: ' + request.rawStatus + ')'
+                      });
+                    }
+                
+                    console.log('[AUTH] Demande valide - accès autorisé');
+                    
+                  } catch (error) {
+                    console.error('[ERREUR AUTH] Vérification demande:', error);
+                    authClient.unbind();
+                    return res.status(500).json({
+                      success: false,
+                      message: 'Erreur système lors de la vérification de votre demande de transport'
+                    });
+                  }
+                }
+             
                 authClient.unbind();
                 
                 return res.json({
@@ -443,175 +599,265 @@ app.post('/api/login', async (req, res) => {
   });
 });
 //--------------------------------------------- liste chauffeur ---------------------------------------------------------------
+// Route pour récupérer tous les chauffeurs directement depuis LDAP
 app.get('/api/chauffeurs', async (req, res) => {
-  // Connexion au serveur LDAP
-  const client = ldap.createClient({
-    url: LDAP_URL
-  });
-
-  // Rechercher les membres du groupe chauffeur
-  const groupSearchOptions = {
-    filter: `(&(objectClass=posixGroup)(cn=chauffeur))`,
-    scope: 'sub',
-    attributes: ['memberUid']
-  };
-
-  client.search(LDAP_GROUP_BASE, groupSearchOptions, (groupErr, groupRes) => {
-    if (groupErr) {
-      console.error('Erreur de recherche du groupe LDAP:', groupErr);
-      return res.status(500).json({ success: false, message: 'Erreur lors de la recherche du groupe dans LDAP' });
-    }
-
-    let memberUids = [];
-
-    groupRes.on('searchEntry', (entry) => {
-      const attribute = entry.attributes.find(attr => attr.type === 'memberUid');
-      if (attribute && attribute.values) {
-        memberUids = attribute.values;
-      }
+  try {
+    // Connexion au serveur LDAP
+    const client = ldap.createClient({
+      url: LDAP_URL
     });
 
-    groupRes.on('error', (err) => {
-      console.error('Erreur lors de la recherche du groupe:', err);
-      return res.status(500).json({ success: false, message: 'Erreur pendant la recherche du groupe LDAP' });
-    });
+    // Rechercher les membres du groupe chauffeur
+    const groupSearchOptions = {
+      filter: `(&(objectClass=posixGroup)(cn=chauffeur))`,
+      scope: 'sub',
+      attributes: ['memberUid']
+    };
 
-    groupRes.on('end', () => {
-      if (memberUids.length === 0) {
-        client.unbind();
-        return res.json({
-          success: true,
-          chauffeurs: [],
-          message: 'Aucun chauffeur trouvé'
-        });
+    client.search(LDAP_GROUP_BASE, groupSearchOptions, (groupErr, groupRes) => {
+      if (groupErr) {
+        console.error('Erreur de recherche du groupe LDAP:', groupErr);
+        return res.status(500).json({ success: false, message: 'Erreur lors de la recherche du groupe dans LDAP' });
       }
 
-      // Créer un filtre pour rechercher tous les utilisateurs qui sont membres du groupe
-      const userFilter = `(|${memberUids.map(uid => `(uid=${uid})`).join('')})`;
-      
-      const userSearchOptions = {
-        filter: userFilter,
-        scope: 'sub',
-        attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'employeeNumber', 'accountStatus', 'userAccountControl']
-      };
+      let memberUids = [];
 
-      client.search(LDAP_SEARCH_BASE, userSearchOptions, async (searchErr, searchRes) => {
-        if (searchErr) {
-          console.error('Erreur de recherche utilisateurs LDAP:', searchErr);
+      groupRes.on('searchEntry', (entry) => {
+        const attribute = entry.attributes.find(attr => attr.type === 'memberUid');
+        if (attribute && attribute.values) {
+          memberUids = attribute.values;
+        }
+      });
+
+      groupRes.on('error', (err) => {
+        console.error('Erreur lors de la recherche du groupe:', err);
+        return res.status(500).json({ success: false, message: 'Erreur pendant la recherche du groupe LDAP' });
+      });
+
+      groupRes.on('end', () => {
+        if (memberUids.length === 0) {
           client.unbind();
-          return res.status(500).json({ 
-            success: false, 
-            message: 'Erreur lors de la recherche des utilisateurs dans LDAP' 
+          return res.json({
+            success: true,
+            chauffeurs: [],
+            message: 'Aucun chauffeur trouvé dans LDAP'
           });
         }
 
-        const chauffeurs = [];
-        const chauffeurPromises = [];
+        // Créer un filtre pour rechercher tous les utilisateurs qui sont membres du groupe
+        const userFilter = `(|${memberUids.map(uid => `(uid=${uid})`).join('')})`;
+        
+        const userSearchOptions = {
+          filter: userFilter,
+          scope: 'sub',
+          attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'uidNumber', 'accountStatus', 'userAccountControl']
+        };
 
-        searchRes.on('searchEntry', (entry) => {
-          const chauffeur = {};
-          
-          entry.attributes.forEach(attr => {
-            const value = attr.values && attr.values.length > 0 ? attr.values[0] : null;
+        client.search(LDAP_SEARCH_BASE, userSearchOptions, async (searchErr, searchRes) => {
+          if (searchErr) {
+            console.error('Erreur de recherche utilisateurs LDAP:', searchErr);
+            client.unbind();
+            return res.status(500).json({ 
+              success: false, 
+              message: 'Erreur lors de la recherche des utilisateurs dans LDAP' 
+            });
+          }
+
+          const ldapChauffeurs = [];
+
+          searchRes.on('searchEntry', (entry) => {
+            const chauffeur = {
+              // Définir des valeurs par défaut pour s'assurer que tous les objets chauffeur ont la même structure
+              ldap_id: null,
+              matricule: null,
+              nom: null,
+              prenom: null,
+              email: '',
+              tel: '',
+              statut: 'Actif',
+              is_active: true,
+              disponibilite: 'Disponible'  // Valeur par défaut
+            };
             
-            switch(attr.type) {
-              case 'uid':
-                chauffeur.id = value;
-                chauffeur.ldap_id = value;
-                break;
-              case 'sn':
-                chauffeur.nom = value;
-                break;
-              case 'givenName':
-                chauffeur.prenom = value;
-                break;
-              case 'employeeNumber':
-                chauffeur.matricule = value;
-                break;
-              case 'telephoneNumber':
-                chauffeur.tel = value;
-                break;
-              case 'mail':
-                chauffeur.email = value;
-                break;
-              case 'accountStatus':
-                chauffeur.statut = value;
-                break;
-              case 'userAccountControl':
-                if (value) {
-                  try {
-                    const uac = parseInt(value.toString());
-                    if (!isNaN(uac)) {
-                      chauffeur.statut = (uac & 0x0002) ? 'Désactivé' : 'Actif';
-                      chauffeur.is_active = !((uac & 0x0002));
-                    } else {
-                      chauffeur.statut = 'Actif';
-                      chauffeur.is_active = true;
+            entry.attributes.forEach(attr => {
+              const value = attr.values && attr.values.length > 0 ? attr.values[0] : null;
+              
+              switch(attr.type) {
+                case 'uid':
+                  chauffeur.ldap_id = value;
+                  chauffeur.id = value; // Ajouter un ID pour React
+                  break;
+                case 'sn':
+                  chauffeur.nom = value;
+                  break;
+                case 'givenName':
+                  chauffeur.prenom = value;
+                  break;
+                case 'uidNumber':
+                  chauffeur.matricule = value;
+                  break;
+                case 'telephoneNumber':
+                  chauffeur.tel = value || '';
+                  break;
+                case 'mail':
+                  chauffeur.email = value || '';
+                  break;
+                case 'accountStatus':
+                  chauffeur.statut = value || 'Actif';
+                  break;
+                case 'userAccountControl':
+                  if (value) {
+                    try {
+                      const uac = parseInt(value.toString());
+                      if (!isNaN(uac)) {
+                        chauffeur.statut = (uac & 0x0002) ? 'Désactivé' : 'Actif';
+                        chauffeur.is_active = !((uac & 0x0002));
+                      }
+                    } catch (error) {
+                      console.error('Erreur lors du traitement de userAccountControl:', error);
                     }
-                  } catch (error) {
-                    console.error('Erreur lors du traitement de userAccountControl:', error);
-                    chauffeur.statut = 'Actif';
-                    chauffeur.is_active = true;
                   }
+                  break;
+              }
+            });
+
+            ldapChauffeurs.push(chauffeur);
+          });
+
+          searchRes.on('error', (err) => {
+            console.error('Erreur lors de la recherche:', err);
+            client.unbind();
+            return res.status(500).json({ 
+              success: false, 
+              message: 'Erreur pendant la recherche des utilisateurs LDAP' 
+            });
+          });
+
+          searchRes.on('end', async () => {
+            client.unbind();
+            
+            try {
+              // Filtrage strict des chauffeurs avec tous les champs requis
+              const validChauffeurs = [];
+              const invalidChauffeurs = [];
+              
+              for (const chauffeur of ldapChauffeurs) {
+                // Vérification stricte pour s'assurer que les champs obligatoires ne sont pas null ou des chaînes vides
+                if (chauffeur.ldap_id && 
+                    chauffeur.matricule && 
+                    chauffeur.nom && 
+                    chauffeur.prenom && 
+                    chauffeur.ldap_id.toString().trim() !== '' &&
+                    chauffeur.matricule.toString().trim() !== '' && 
+                    chauffeur.nom.toString().trim() !== '' && 
+                    chauffeur.prenom.toString().trim() !== '') {
+                  validChauffeurs.push(chauffeur);
+                } else {
+                  invalidChauffeurs.push({
+                    ldap_id: chauffeur.ldap_id,
+                    matricule: chauffeur.matricule,
+                    nom: chauffeur.nom,
+                    prenom: chauffeur.prenom
+                  });
                 }
-                break;
+              }
+              
+              console.log(`Nombre total de chauffeurs LDAP : ${ldapChauffeurs.length}`);
+              console.log(`Nombre de chauffeurs valides : ${validChauffeurs.length}`);
+              console.log(`Nombre de chauffeurs invalides (ignorés) : ${invalidChauffeurs.length}`);
+              
+              // Logging détaillé des chauffeurs invalides
+              if (invalidChauffeurs.length > 0) {
+                console.warn('Chauffeurs ignorés car ils n\'ont pas tous les champs requis:');
+                invalidChauffeurs.forEach((c, index) => {
+                  console.warn(`${index + 1}. LDAP ID: ${c.ldap_id || 'NULL'}, Matricule: ${c.matricule || 'NULL'}, Nom: ${c.nom || 'NULL'}, Prénom: ${c.prenom || 'NULL'}`);
+                });
+              }
+              
+              // Récupérer les informations de disponibilité depuis la base de données
+              const dbChauffeurs = await pool.query('SELECT ldap_id, disponibilite FROM chauffeurs');
+              const disponibiliteMap = {};
+              
+              // Créer un map des disponibilités
+              dbChauffeurs.rows.forEach(chauffeur => {
+                disponibiliteMap[chauffeur.ldap_id] = chauffeur.disponibilite;
+              });
+              
+              // Mettre à jour les disponibilités des chauffeurs LDAP avec les valeurs de la BD
+              validChauffeurs.forEach(chauffeur => {
+                if (disponibiliteMap[chauffeur.ldap_id]) {
+                  chauffeur.disponibilite = disponibiliteMap[chauffeur.ldap_id];
+                }
+                // Sinon, on garde la valeur par défaut 'Disponible'
+              });
+              
+              // Synchroniser la base de données en arrière-plan, sans attendre la fin pour répondre à l'utilisateur
+              validChauffeurs.forEach(async (chauffeur) => {
+                try {
+                  // Double vérification avant l'insertion
+                  if (!chauffeur.matricule) {
+                    console.error(`ERREUR CRITIQUE: Tentative d'insertion d'un chauffeur sans matricule après filtrage: ${chauffeur.ldap_id}`);
+                    return;
+                  }
+                  
+                  await pool.query(
+                    `INSERT INTO chauffeurs 
+                    (ldap_id, matricule, nom, prenom, email, tel, statut, disponibilite, is_active) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+                    ON CONFLICT (ldap_id) 
+                    DO UPDATE SET 
+                      matricule = EXCLUDED.matricule,
+                      nom = EXCLUDED.nom,
+                      prenom = EXCLUDED.prenom,
+                      email = EXCLUDED.email,
+                      tel = EXCLUDED.tel,
+                      statut = EXCLUDED.statut,
+                      is_active = EXCLUDED.is_active,
+                      date_modification = CURRENT_TIMESTAMP
+                    `,
+                    [
+                      chauffeur.ldap_id,
+                      chauffeur.matricule,
+                      chauffeur.nom,
+                      chauffeur.prenom,
+                      chauffeur.email,
+                      chauffeur.tel,
+                      chauffeur.statut,
+                      chauffeur.disponibilite,
+                      chauffeur.is_active
+                    ]
+                  );
+                  console.log(`Insertion/mise à jour réussie pour le chauffeur ${chauffeur.ldap_id} (Matricule: ${chauffeur.matricule})`);
+                } catch (insertError) {
+                  console.error(`Erreur lors de l'insertion/mise à jour du chauffeur en SQL:`, insertError);
+                  console.error(`Données chauffeur problématiques:`, JSON.stringify(chauffeur));
+                }
+              });
+              
+              // Renvoyer directement les chauffeurs du LDAP (avec disponibilités de la BD si elles existent)
+              return res.json({
+                success: true,
+                chauffeurs: validChauffeurs,
+                message: `${validChauffeurs.length} chauffeurs récupérés depuis LDAP`
+              });
+            } catch (error) {
+              console.error('Erreur lors du traitement des données LDAP:', error);
+              return res.status(500).json({
+                success: false,
+                message: 'Erreur lors du traitement des données LDAP'
+              });
             }
           });
-
-          if (!chauffeur.statut) {
-            chauffeur.statut = 'Actif';
-            chauffeur.is_active = true;
-          }
-
-          chauffeurs.push(chauffeur);
-
-          if (chauffeur.ldap_id) {
-            const sqlPromise = pool.query(
-              `INSERT INTO chauffeurs (ldap_id, is_active) 
-               VALUES ($1, $2) 
-               ON CONFLICT (ldap_id) 
-               DO UPDATE SET is_active = $2`,
-              [chauffeur.ldap_id, chauffeur.is_active]
-            ).catch(err => {
-              console.error('Erreur lors de l\'insertion/mise à jour du chauffeur en SQL:', err);
-            });
-            
-            chauffeurPromises.push(sqlPromise);
-          }
-        });
-
-        searchRes.on('error', (err) => {
-          console.error('Erreur lors de la recherche:', err);
-          client.unbind();
-          return res.status(500).json({ 
-            success: false, 
-            message: 'Erreur pendant la recherche des utilisateurs LDAP' 
-          });
-        });
-
-        searchRes.on('end', async () => {
-          client.unbind();
-          
-          try {
-            await Promise.all(chauffeurPromises);
-            
-            return res.json({
-              success: true,
-              chauffeurs: chauffeurs,
-              message: 'Chauffeurs récupérés et synchronisés avec la base de données'
-            });
-          } catch (error) {
-            console.error('Erreur lors de la synchronisation avec la base de données:', error);
-            return res.json({
-              success: true,
-              chauffeurs: chauffeurs,
-              warning: 'Erreur lors de la synchronisation avec la base de données'
-            });
-          }
         });
       });
     });
-  });
+  } catch (error) {
+    console.error('Erreur générale:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur serveur lors de la récupération des chauffeurs'
+    });
+  }
 });
 
 //-----------------------------------------------------liste sousadmins ------------------------------------------
@@ -664,7 +910,7 @@ app.get('/api/sousadmins', async (req, res) => {
       const userSearchOptions = {
         filter: userFilter,
         scope: 'sub',
-        attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'employeeNumber', 'accountStatus', 'userAccountControl']
+        attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'uidNumber', 'accountStatus', 'userAccountControl']
       };
 
       client.search(LDAP_SEARCH_BASE, userSearchOptions, async (searchErr, searchRes) => {
@@ -697,7 +943,7 @@ app.get('/api/sousadmins', async (req, res) => {
               case 'givenName':
                 admin.prenom = value;
                 break;
-              case 'employeeNumber':
+              case 'uidNumber':
                 admin.matricule = value;
                 break;
               case 'telephoneNumber':
@@ -835,7 +1081,7 @@ app.get('/api/employes', async (req, res) => {
       const userSearchOptions = {
         filter: userFilter,
         scope: 'sub',
-        attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'employeeNumber', 'accountStatus', 'userAccountControl']
+        attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'uidNumber', 'accountStatus', 'userAccountControl']
       };
 
       client.search(LDAP_SEARCH_BASE, userSearchOptions, (searchErr, searchRes) => {
@@ -867,7 +1113,7 @@ app.get('/api/employes', async (req, res) => {
               case 'givenName':
                 employe.prenom = value;
                 break;
-              case 'employeeNumber':
+              case 'uidNumber':
                 employe.matricule = value;
                 break;
               case 'telephoneNumber':
@@ -935,7 +1181,7 @@ app.get('/api/employes', async (req, res) => {
 app.get('/api/buses', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee FROM bus'
+      'SELECT id, matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, nb_places FROM bus'
     );
     res.json(result.rows);
   } catch (err) {
@@ -947,14 +1193,14 @@ app.get('/api/buses', async (req, res) => {
 // API pour ajouter un nouveau bus
 app.post('/api/buses', async (req, res) => {
   try {
-    const { matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee } = req.body;
+    const { matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, nb_places } = req.body;
     
     // Par défaut, le statut est "disponible" pour un nouveau bus
     const busStatut = statut || 'disponible';
     
     const result = await pool.query(
-      'INSERT INTO bus (matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [matricule, marque, modele, type_energie, couleur, kilometrage, type, busStatut, annee]
+      'INSERT INTO bus (matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, nb_places) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [matricule, marque, modele, type_energie, couleur, kilometrage, type, busStatut, annee, nb_places]
     );
     
     res.status(201).json(result.rows[0]);
@@ -968,11 +1214,11 @@ app.post('/api/buses', async (req, res) => {
 app.put('/api/buses/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee } = req.body;
+    const { matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, nb_places } = req.body;
     
     const result = await pool.query(
-      'UPDATE bus SET matricule = $1, marque = $2, modele = $3, type_energie = $4, couleur = $5, kilometrage = $6, type = $7, statut = $8, annee = $9 WHERE id = $10 RETURNING *',
-      [matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, id]
+      'UPDATE bus SET matricule = $1, marque = $2, modele = $3, type_energie = $4, couleur = $5, kilometrage = $6, type = $7, statut = $8, annee = $9, nb_places = $10 WHERE id = $11 RETURNING *',
+      [matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, nb_places, id]
     );
     
     if (result.rows.length === 0) {
@@ -1021,73 +1267,247 @@ app.get('/api/buses/search', async (req, res) => {
   }
 });
 
-// API pour vérifier si un bus est réservé - Utilisation de l'ID à la place du matricule
-app.get('/api/buses/:id/reservations', async (req, res) => {
+//-------------------------------------------------Affectation----------------------------------------------------------------------------------
+
+// GET toutes les affectations
+app.get('/api/affectations', async (req, res) => {
   try {
-    const { id } = req.params;
+    const result = await pool.query(`
+      SELECT
+        a.id,
+        a.bus_id,
+        a.chauffeur_id,
+        a.date_prise_charge,
+        a.statut,
+        b.matricule AS matricule_bus,
+        b.marque AS marque_bus,
+        b.modele,
+        b.nb_places AS places_disponibles,
+        c.matricule AS matricule_chauffeur,
+        c.nom,
+        c.prenom
+      FROM affectations a
+      JOIN bus b ON a.bus_id = b.id
+      JOIN chauffeurs c ON a.chauffeur_id = c.ldap_id
+      ORDER BY a.date_prise_charge DESC
+    `);
     
-    // D'abord, récupérez le matricule associé à cet ID
-    const busResult = await pool.query('SELECT matricule FROM bus WHERE id = $1', [id]);
-    
-    if (busResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Bus non trouvé' });
-    }
-    
-    const matricule = busResult.rows[0].matricule;
-    
-    // Vérifiez s'il existe des réservations actives pour ce bus
-    const result = await pool.query(
-      'SELECT COUNT(*) FROM reservations WHERE matricule_bus = $1 AND statut = $2',
-      [matricule, 'active'] // Ajustez selon votre structure de données
-    );
-    
-    const isReserved = parseInt(result.rows[0].count) > 0;
-    
-    // Si le bus est réservé, mettre à jour son statut
-    if (isReserved) {
-      await pool.query(
-        'UPDATE bus SET statut = $1 WHERE id = $2',
-        ['réservé', id]
-      );
-    }
-    
-    res.json({ isReserved });
+    const affectations = result.rows.map(row => ({
+      id: row.id,
+      bus_id: row.bus_id,
+      chauffeur_id: row.chauffeur_id,
+      matriculeBus: row.matricule_bus,
+      marqueBus: row.marque_bus,
+      modele: row.modele,
+      placesDisponibles: row.places_disponibles,
+      matriculeChauffeur: row.matricule_chauffeur,
+      nomChauffeur: `${row.nom} ${row.prenom}`,
+      date_prise_charge: new Date(row.date_prise_charge).toISOString().split('T')[0],
+      statut: row.statut
+    }));
+   
+    res.json({ success: true, affectations });
   } catch (err) {
-    console.error('Erreur lors de la vérification des réservations:', err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('Erreur:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur serveur', 
+      error: err.message 
+    });
   }
 });
 
-// Écoutez les réservations et mettez à jour le statut des bus en conséquence
-app.post('/api/reservations', async (req, res) => {
+// Créer une nouvelle affectation
+app.post('/api/affectations', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
-    const { matricule_bus, statut } = req.body;
+    const { bus_id, chauffeur_id, date_prise_charge } = req.body;
     
-    // Insérer la réservation
-    await pool.query(
-      'INSERT INTO reservations (matricule_bus, statut, date_reservation) VALUES ($1, $2, NOW())',
-      [matricule_bus, statut]
+    console.log("Données reçues:", req.body);
+
+    if (!bus_id || !chauffeur_id || !date_prise_charge) {
+      return res.status(400).json({
+        success: false,
+        message: 'Données d\'affectation incomplètes'
+      });
+    }
+
+    await client.query('BEGIN');
+
+    const busCheck = await client.query(
+      'SELECT id, statut FROM bus WHERE id = $1',
+      [bus_id]
     );
     
-    // Mettre à jour le statut du bus si la réservation est active
-    if (statut === 'active') {
-      // Récupérer l'ID du bus à partir du matricule
-      const busResult = await pool.query('SELECT id FROM bus WHERE matricule = $1', [matricule_bus]);
-      
-      if (busResult.rows.length > 0) {
-        const busId = busResult.rows[0].id;
-        
-        await pool.query(
-          'UPDATE bus SET statut = $1 WHERE id = $2',
-          ['réservé', busId]
-        );
-      }
+    if (busCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Bus non trouvé'
+      });
     }
     
-    res.status(201).json({ message: 'Réservation créée avec succès' });
+    if (busCheck.rows[0].statut !== 'disponible') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Le bus sélectionné n\'est pas disponible'
+      });
+    }
+
+    const chauffeurCheck = await client.query(
+      'SELECT ldap_id, disponibilite FROM chauffeurs WHERE ldap_id = $1',
+      [chauffeur_id]
+    );
+    
+    if (chauffeurCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Chauffeur non trouvé'
+      });
+    }
+    
+    if (chauffeurCheck.rows[0].disponibilite !== 'Disponible') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Le chauffeur sélectionné n\'est pas disponible'
+      });
+    }
+
+    const result = await client.query(
+      `INSERT INTO affectations 
+      (bus_id, chauffeur_id, date_prise_charge, statut, created_at, updated_at) 
+      VALUES ($1, $2, $3, 'actif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+      RETURNING *`,
+      [bus_id, chauffeur_id, date_prise_charge]
+    );
+
+    await client.query(
+      'UPDATE bus SET statut = $1 WHERE id = $2',
+      ['affecté', bus_id]
+    );
+
+    await client.query(
+      'UPDATE chauffeurs SET disponibilite = $1 WHERE ldap_id = $2',
+      ['En service', chauffeur_id]
+    );
+
+    await client.query('COMMIT');
+
+    const details = await client.query(
+      `SELECT 
+        a.id,
+        a.bus_id,
+        a.chauffeur_id,
+        b.matricule AS matricule_bus,
+        b.marque,
+        b.modele,
+        b.nb_places,
+        c.matricule AS matricule_chauffeur,
+        c.nom,
+        c.prenom,
+        a.date_prise_charge
+      FROM affectations a
+      JOIN bus b ON a.bus_id = b.id
+      JOIN chauffeurs c ON a.chauffeur_id = c.ldap_id
+      WHERE a.id = $1`,
+      [result.rows[0].id]
+    );
+
+    res.status(201).json({
+      success: true,
+      affectation: {
+        id: details.rows[0].id,
+        bus_id: details.rows[0].bus_id,
+        chauffeur_id: details.rows[0].chauffeur_id,
+        matriculeBus: details.rows[0].matricule_bus,
+        matriculeChauffeur: details.rows[0].matricule_chauffeur,
+        placesDisponibles: details.rows[0].nb_places,
+        date_prise_charge: details.rows[0].date_prise_charge,
+        nomChauffeur: `${details.rows[0].nom} ${details.rows[0].prenom}`,
+        marqueBus: details.rows[0].marque,
+        modele: details.rows[0].modele
+      }
+    });
   } catch (err) {
-    console.error('Erreur lors de la création de la réservation:', err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    await client.query('ROLLBACK');
+    console.error('Erreur lors de la création d\'une affectation:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur lors de la création de l\'affectation',
+      error: err.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// Supprimer une affectation
+app.delete('/api/affectations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Récupérer les informations de l'affectation avant suppression
+    const affectationCheck = await pool.query(
+      'SELECT bus_id, chauffeur_id FROM affectations WHERE id = $1',
+      [id]
+    );
+    
+    if (affectationCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Affectation non trouvée'
+      });
+    }
+    
+    const busId = affectationCheck.rows[0].bus_id;
+    const chauffeurId = affectationCheck.rows[0].chauffeur_id;
+    
+    // Début d'une transaction
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Supprimer l'affectation
+      await client.query(
+        'DELETE FROM affectations WHERE id = $1',
+        [id]
+      );
+      
+      // Mettre à jour le statut du bus
+      await client.query(
+        'UPDATE bus SET statut = $1 WHERE id = $2',
+        ['disponible', busId]
+      );
+      
+      // Mettre à jour la disponibilité du chauffeur
+      await client.query(
+        'UPDATE chauffeurs SET disponibilite = $1 WHERE ldap_id = $2',
+        ['Disponible', chauffeurId]
+      );
+      
+      await client.query('COMMIT');
+      
+      res.json({
+        success: true,
+        message: 'Affectation supprimée avec succès'
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Erreur lors de la suppression d\'une affectation:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur lors de la suppression de l\'affectation'
+    });
   }
 });
 //----------------------------------------------transport externe--------------------------------------------------------
@@ -2132,6 +2552,85 @@ app.get('/api/line-assignments/:lineId', async (req, res) => {
   } catch (err) {
     console.error('Error fetching line assignments:', err);
     res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+
+// Route pour créer un trajet
+app.post('/api/trajets', async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    const {
+      ligne_id, ligne_number, depart, arrivee, jours,
+      heure_depart, heure_arrivee, duree, chauffeur,
+      vehicule, statut, arrets, remarques
+    } = req.body;
+
+    // Validate time formats
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(heure_depart) || !timeRegex.test(heure_arrivee)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ 
+        success: false,
+        error: 'Format de temps invalide. Utilisez HH:MM' 
+      });
+    }
+
+    const result = await client.query(
+      `INSERT INTO trajets (
+        ligne_id, ligne_number, depart, arrivee, jours,
+        heure_depart, heure_arrivee, duree, chauffeur,
+        vehicule, statut, arrets, remarques
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING *`,
+      [
+        ligne_id || null, 
+        ligne_number, 
+        depart, 
+        arrivee, 
+        jours,
+        heure_depart, 
+        heure_arrivee, 
+        duree || '', 
+        chauffeur || '',
+        vehicule || '', 
+        statut || 'Actif', 
+        arrets ? JSON.stringify(arrets) : null, 
+        remarques || ''
+      ]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Erreur lors de la création du trajet:', err);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur serveur lors de la création du trajet' 
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// Route pour récupérer les trajets
+app.get('/api/trajets', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT t.*, l.name as ligne_name 
+      FROM trajets t
+      LEFT JOIN lines l ON t.ligne_id = l.id
+      ORDER BY t.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erreur lors de la récupération des trajets:', err);
+    res.status(500).json({ success: false, error: 'Erreur serveur' });
   }
 });
 

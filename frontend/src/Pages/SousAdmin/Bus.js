@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Navbar from '../../components/Navbar';
 import Header from "../../components/Header";
@@ -19,13 +19,8 @@ const BusTable = () => {
   // URL de base de l'API
   const API_URL = "http://localhost:5000/api";
 
-  // Récupérer tous les bus au chargement du composant
-  useEffect(() => {
-    fetchBuses();
-  }, []);
-
   // Fonction pour récupérer tous les bus
-  const fetchBuses = async () => {
+  const fetchBuses = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/buses`);
@@ -40,6 +35,7 @@ const BusTable = () => {
         couleur: bus.couleur,
         kilometrage: bus.kilometrage,
         type: bus.type,
+        nb_places:bus.nb_places,
         statue: bus.statut,
         annee: bus.annee
       }));
@@ -52,7 +48,12 @@ const BusTable = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL]);
+
+  // Récupérer tous les bus au chargement du composant
+  useEffect(() => {
+    fetchBuses();
+  }, [fetchBuses]);
 
   // Fonction pour rechercher des bus
   const handleSearch = async () => {
@@ -74,6 +75,7 @@ const BusTable = () => {
         couleur: bus.couleur,
         kilometrage: bus.kilometrage,
         type: bus.type,
+        nb_places:bus.nb_places,
         statue: bus.statut,
         annee: bus.annee
       }));
@@ -98,6 +100,7 @@ const BusTable = () => {
         type_energie: newBus.typeEng,
         couleur: newBus.couleur,
         kilometrage: parseInt(newBus.kilometrage) || 0,
+        nb_places: parseInt(newBus.nb_places) || 0,
         type: newBus.type,
         statut: newBus.statue || "disponible", // Utilisez le statut existant si en mode édition
         annee: parseInt(newBus.annee) || new Date().getFullYear()
@@ -141,7 +144,7 @@ const BusTable = () => {
   };
 
   // Fonction pour vérifier si un bus est réservé et mettre à jour son statut
-  const checkBusReservation = async (id) => {
+  const checkBusReservation = useCallback(async (id) => {
     try {
       await axios.get(`${API_URL}/buses/${id}/reservations`);
       // La mise à jour du statut se fait côté serveur si nécessaire
@@ -149,7 +152,7 @@ const BusTable = () => {
     } catch (err) {
       console.error("Erreur lors de la vérification des réservations:", err);
     }
-  };
+  }, [API_URL, fetchBuses]);
 
   // Vérifier les réservations pour tous les bus périodiquement
   useEffect(() => {
@@ -168,7 +171,7 @@ const BusTable = () => {
     
     // Nettoyer l'intervalle lorsque le composant est démonté
     return () => clearInterval(intervalId);
-  }, [buses]);
+  }, [buses, checkBusReservation]); // Added checkBusReservation dependency
 
   return (
     <div>
@@ -217,6 +220,7 @@ const BusTable = () => {
                   <th>Couleur⬍</th>
                   <th>kilometrage⬍</th>
                   <th>Type⬍</th>
+                  <th>nb_places⬍</th>
                   <th>Statut⬍</th>
                   <th>Action⬍</th>
                 </tr>
@@ -231,6 +235,7 @@ const BusTable = () => {
                     <td>{bus.couleur}</td>
                     <td>{bus.kilometrage}</td>
                     <td>{bus.type}</td>
+                    <td>{bus.nb_places}</td>
                     <td>
                       <span className={`status-badge status-${bus.statue.replace(/\s+/g, '-')}`}>
                         {bus.statue}

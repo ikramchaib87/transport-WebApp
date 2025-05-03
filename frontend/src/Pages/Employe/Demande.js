@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "./Demande.css";
 import Logot from "../../icons/logot.png";
 
@@ -41,9 +41,10 @@ const TransportRequest = () => {
   const [verificationCode, setVerificationCode] = useState('');
   // Ajoutez ces états pour la validation de l'image
   const [imageError, setImageError] = useState(null);
-const [imagePreview, setImagePreview] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  
   // Liste des wilayas d'Algérie
-  const wilayas = [
+  const wilayas = useMemo(() => [
     "Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", 
     "Béchar", "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", 
     "Tizi Ouzou", "Alger", "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", 
@@ -54,41 +55,45 @@ const [imagePreview, setImagePreview] = useState(null);
     "Ghardaïa", "Relizane", "El M'Ghair", "El Meniaa", "Ouled Djellal", 
     "Bordj Baji Mokhtar", "Béni Abbès", "Timimoun", "Touggourt", "Djanet", 
     "In Salah", "In Guezzam"
-  ];
+  ], []);
 
-  // Dictionnaire des communes par wilaya
-  const communesByWilaya = {
-    "Alger": [
-      "Alger Centre", "Sidi M'Hamed", "El Madania", "Belouizdad", "Bab El Oued", 
-      "Bologhine", "Casbah", "Oued Koriche", "Bir Mourad Raïs", "El Biar", 
-      "Bouzareah", "Birkhadem", "El Harrach", "Baraki", "Oued Smar", "Bachdjerrah", 
-      "Hussein Dey", "Kouba", "Bourouba", "Dar El Beïda", "Bab Ezzouar", "Ben Aknoun", 
-      "Dely Ibrahim", "El Hammamet", "Raïs Hamidou", "Djasr Kasentina", "El Mouradia", 
-      "Hydra", "Mohammadia", "Bordj El Kiffan", "El Magharia", "Beni Messous", 
-      "Les Eucalyptus", "Birtouta", "Tessala El Merdja", "Ouled Chebel", "Sidi Moussa", 
-      "Aïn Taya", "Bordj El Bahri", "El Marsa", "Haraoua", "Rouiba", "Reghaïa", 
-      "Aïn Benian", "Staoueli", "Zeralda", "Mahelma", "Rahmania", "Souidania", 
-      "Cheraga", "Ouled Fayet", "El Achour", "Draria", "Douera", "Baba Hassen", 
-      "Khraicia", "Saoula"
-    ],
-    "Blida": [
-      "Blida", "Chebli", "Bouinan", "Oued El Alleug", "Ouled Yaïch", "Chréa", 
-      "El Affroun", "Chiffa", "Hammam Melouane", "Benkhelil", "Soumaa", "Guerrouaou", 
-      "Boufarik", "Souhane", "Mouzaïa", "Bougara", "Beni Tamou", "Bouarfa", "Beni Mered", 
-      "Meftah", "Ouled Slama", "Djebabra", "Sidi Moussa"
-    ],
-    // Ajoutez les autres wilayas et leurs communes ici
-  };
+  // Dictionnaire des communes par wilaya - Utiliser useMemo pour éviter la recréation à chaque render
+  const communesByWilaya = useMemo(() => {
+    const communes = {
+      "Alger": [
+        "Alger Centre", "Sidi M'Hamed", "El Madania", "Belouizdad", "Bab El Oued", 
+        "Bologhine", "Casbah", "Oued Koriche", "Bir Mourad Raïs", "El Biar", 
+        "Bouzareah", "Birkhadem", "El Harrach", "Baraki", "Oued Smar", "Bachdjerrah", 
+        "Hussein Dey", "Kouba", "Bourouba", "Dar El Beïda", "Bab Ezzouar", "Ben Aknoun", 
+        "Dely Ibrahim", "El Hammamet", "Raïs Hamidou", "Djasr Kasentina", "El Mouradia", 
+        "Hydra", "Mohammadia", "Bordj El Kiffan", "El Magharia", "Beni Messous", 
+        "Les Eucalyptus", "Birtouta", "Tessala El Merdja", "Ouled Chebel", "Sidi Moussa", 
+        "Aïn Taya", "Bordj El Bahri", "El Marsa", "Haraoua", "Rouiba", "Reghaïa", 
+        "Aïn Benian", "Staoueli", "Zeralda", "Mahelma", "Rahmania", "Souidania", 
+        "Cheraga", "Ouled Fayet", "El Achour", "Draria", "Douera", "Baba Hassen", 
+        "Khraicia", "Saoula"
+      ],
+      "Blida": [
+        "Blida", "Chebli", "Bouinan", "Oued El Alleug", "Ouled Yaïch", "Chréa", 
+        "El Affroun", "Chiffa", "Hammam Melouane", "Benkhelil", "Soumaa", "Guerrouaou", 
+        "Boufarik", "Souhane", "Mouzaïa", "Bougara", "Beni Tamou", "Bouarfa", "Beni Mered", 
+        "Meftah", "Ouled Slama", "Djebabra", "Sidi Moussa"
+      ],
+      // Ajoutez les autres wilayas et leurs communes ici
+    };
 
-  // Ajouter des communes par défaut pour les wilayas non spécifiées
-  wilayas.forEach(wilaya => {
-    if (!communesByWilaya[wilaya]) {
-      communesByWilaya[wilaya] = ["Commune principale", "Autre commune"];
-    }
-  });
+    // Ajouter des communes par défaut pour les wilayas non spécifiées
+    wilayas.forEach(wilaya => {
+      if (!communes[wilaya]) {
+        communes[wilaya] = ["Commune principale", "Autre commune"];
+      }
+    });
+
+    return communes;
+  }, [wilayas]);
 
   // Liste des itinéraires disponibles
-  const itineraires = [
+  const itineraires = useMemo(() => [
     // Itinéraires concernant Hidra
     "Birkhadem → Hydra",
     "Bir Mourad Raïs → Hydra",
@@ -100,15 +105,17 @@ const [imagePreview, setImagePreview] = useState(null);
     "Dély Ibrahim → Hydra",
     "Chevalley → Hydra",
     "hydra→ Bordj El Kiffan"
-  ];
-  const fonction = [
-      "Ingénieur",
-      "Technicien",
-      "Administrateur",
-      "Cadre",
-      "Agent de maîtrise",
-      "Opérateur" 
-  ];
+  ], []);
+
+  const fonction = useMemo(() => [
+    "Ingénieur",
+    "Technicien",
+    "Administrateur",
+    "Cadre",
+    "Agent de maîtrise",
+    "Opérateur" 
+  ], []);
+
   // État pour stocker les communes filtrées en fonction de la wilaya sélectionnée
   const [filteredCommunes, setFilteredCommunes] = useState([]);
   
@@ -121,7 +128,7 @@ const [imagePreview, setImagePreview] = useState(null);
     } else {
       setFilteredCommunes([]);
     }
-  }, [formData.wilaya]);
+  }, [formData.wilaya, communesByWilaya]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -266,125 +273,131 @@ const [imagePreview, setImagePreview] = useState(null);
   };
 
   
-// Modification de la fonction frontend pour séparer les vérifications
-const verifyMatricule = async () => {
-  if (!formData.matricule) return;
-  
-  setIsLoading(prev => ({ ...prev, matricule: true }));
-  
-  try {
-    // 1. Première étape: Vérification du matricule dans LDAP uniquement
-    console.log("Envoi de la requête de vérification pour matricule:", formData.matricule);
-    const response = await fetch('http://localhost:3001/api/verify-matricule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matricule: formData.matricule })
-    });
+  // Modification de la fonction frontend pour séparer les vérifications
+  const verifyMatricule = async () => {
+    if (!formData.matricule) return;
     
-    console.log("Statut de la réponse:", response.status);
+    setIsLoading(prev => ({ ...prev, matricule: true }));
     
-    // Vérifier si la réponse est OK
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status}`);
-    }
-    
-    // Lire le texte de la réponse pour le débogage
-    const responseText = await response.text();
-    console.log("Réponse texte brute:", responseText);
-    
-    // Parser le JSON manuellement pour attraper les erreurs de syntaxe
-    let data;
     try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("Erreur de parsing JSON:", parseError);
-      throw new Error("Format de réponse invalide");
-    }
-    
-    console.log("Données JSON parsées:", data);
-    
-    // Vérifier si la réponse est un succès
-    if (!data.success) {
-      alert(data.message || "Erreur de vérification du matricule.");
-      return;
-    }
-    
-    // Vérifier si le matricule existe
-    if (!data.exists) {
+      // 1. Première étape: Vérification du matricule dans LDAP uniquement
+      console.log("Envoi de la requête de vérification pour matricule:", formData.matricule);
+      const response = await fetch('http://localhost:3001/api/verify-matricule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricule: formData.matricule })
+      });
+      
+      console.log("Statut de la réponse:", response.status);
+      
+      // Vérifier si la réponse est OK
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      
+      // Lire le texte de la réponse pour le débogage
+      const responseText = await response.text();
+      console.log("Réponse texte brute:", responseText);
+      
+      // Parser le JSON manuellement pour attraper les erreurs de syntaxe
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Erreur de parsing JSON:", parseError);
+        throw new Error("Format de réponse invalide");
+      }
+      
+      console.log("Données JSON parsées:", data);
+      
+      // Vérifier si la réponse est un succès
+      if (!data.success) {
+        alert(data.message || "Erreur de vérification du matricule.");
+        return;
+      }
+      
+      // Vérifier si le matricule existe
+      if (!data.exists) {
+        setValidations(prev => ({
+          ...prev,
+          matriculeVerified: false,
+          hasExistingRequest: false
+        }));
+        alert("Matricule invalide ou employé non trouvé dans le système.");
+        return;
+      }
+      
+      // Si le matricule est valide, pré-remplir les champs
+      if (data.data) {
+        setFormData(prev => ({
+          ...prev,
+          name: data.data.lastName || prev.name,
+          prenom: data.data.firstName || prev.prenom,
+          email: data.data.email || prev.email,
+        }));
+      }
+      
+      // 2. Deuxième étape: Vérification de l'existence d'une demande antérieure
+      console.log("Vérification des demandes existantes pour matricule:", formData.matricule);
+      const existingResponse = await fetch('http://localhost:3001/api/check-existing-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricule: formData.matricule })
+      });
+      
+      if (!existingResponse.ok) {
+        throw new Error(`Erreur HTTP check-existing: ${existingResponse.status}`);
+      }
+      
+      const existingResponseText = await existingResponse.text();
+      console.log("Réponse texte check-existing:", existingResponseText);
+      
+      let existingData;
+      try {
+        existingData = JSON.parse(existingResponseText);
+      } catch (parseError) {
+        console.error("Erreur de parsing JSON (check-existing):", parseError);
+        throw new Error("Format de réponse invalide pour check-existing");
+      }
+      
+      console.log("Données check-existing:", existingData);
+      
+      if (!existingData.success) {
+        alert("Erreur lors de la vérification des demandes existantes.");
+        return;
+      }
+      
+      // Mettre à jour les validations
       setValidations(prev => ({
         ...prev,
-        matriculeVerified: false,
-        hasExistingRequest: false
+        matriculeVerified: true,
+        hasExistingRequest: existingData.hasExistingRequest
       }));
-      alert("Matricule invalide ou employé non trouvé dans le système.");
-      return;
+      
+      // Afficher le message approprié
+      if (existingData.hasExistingRequest) {
+        alert("Vous avez déjà une demande de transport en cours ou approuvée. Vous ne pouvez pas soumettre une nouvelle demande.");
+      } else {
+        alert("Matricule vérifié avec succès!");
+      }
+      
+    } catch (error) {
+      console.error("Erreur détaillée:", error);
+      alert("Erreur de connexion au serveur. Veuillez réessayer.");
+    } finally {
+      setIsLoading(prev => ({ ...prev, matricule: false }));
     }
-    
-    // Si le matricule est valide, pré-remplir les champs
-    if (data.data) {
-      setFormData(prev => ({
-        ...prev,
-        name: data.data.lastName || prev.name,
-        prenom: data.data.firstName || prev.prenom,
-        email: data.data.email || prev.email,
-      }));
-    }
-    
-    // 2. Deuxième étape: Vérification de l'existence d'une demande antérieure
-    console.log("Vérification des demandes existantes pour matricule:", formData.matricule);
-    const existingResponse = await fetch('http://localhost:3001/api/check-existing-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matricule: formData.matricule })
-    });
-    
-    if (!existingResponse.ok) {
-      throw new Error(`Erreur HTTP check-existing: ${existingResponse.status}`);
-    }
-    
-    const existingResponseText = await existingResponse.text();
-    console.log("Réponse texte check-existing:", existingResponseText);
-    
-    let existingData;
-    try {
-      existingData = JSON.parse(existingResponseText);
-    } catch (parseError) {
-      console.error("Erreur de parsing JSON (check-existing):", parseError);
-      throw new Error("Format de réponse invalide pour check-existing");
-    }
-    
-    console.log("Données check-existing:", existingData);
-    
-    if (!existingData.success) {
-      alert("Erreur lors de la vérification des demandes existantes.");
-      return;
-    }
-    
-    // Mettre à jour les validations
-    setValidations(prev => ({
-      ...prev,
-      matriculeVerified: true,
-      hasExistingRequest: existingData.hasExistingRequest
-    }));
-    
-    // Afficher le message approprié
-    if (existingData.hasExistingRequest) {
-      alert("Vous avez déjà une demande de transport en cours ou approuvée. Vous ne pouvez pas soumettre une nouvelle demande.");
-    } else {
-      alert("Matricule vérifié avec succès!");
-    }
-    
-  } catch (error) {
-    console.error("Erreur détaillée:", error);
-    alert("Erreur de connexion au serveur. Veuillez réessayer.");
-  } finally {
-    setIsLoading(prev => ({ ...prev, matricule: false }));
-  }
-};
+  };
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // Éviter les soumissions multiples
+    if (isSubmitting) {
+      return;
+    }
     // Vérifier si le matricule est validé avant de soumettre
     if (!validations.matriculeVerified) {
       alert("Veuillez vérifier votre matricule avant de soumettre le formulaire.");
@@ -401,7 +414,8 @@ const verifyMatricule = async () => {
       alert("Veuillez télécharger une photo d'identité.");
       return;
     }
-    
+    // Activer l'état de soumission
+    setIsSubmitting(true);
     
     try {
       // Créer un FormData pour pouvoir envoyer le fichier image
@@ -433,12 +447,18 @@ const verifyMatricule = async () => {
         window.location.href = "../../LoginEmploye"; // Ou utilisez navigate avec React Router
       } else {
         alert(data.message || "Erreur lors de la soumission de la demande.");
+        // Réactiver le bouton si la soumission a échoué
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error("Erreur de connexion au serveur:", error);
       alert("Erreur de connexion au serveur. Veuillez réessayer.");
+      // Réactiver le bouton si la soumission a échoué
+      setIsSubmitting(false);
     }
   };
+
+  
   return (
     <div className="demande">
       <div className="demande-header">
@@ -787,12 +807,12 @@ const verifyMatricule = async () => {
             <div className="button-container">
               <button type="reset" className="btn-cancel"><a href="../../LoginEmploye">Annuler</a></button>
               <button 
-                type="submit" 
-                className="btn-submit" 
-                disabled={!validations.matriculeVerified || !validations.emailVerified || validations.hasExistingRequest}
-              >
-                Soumettre
-              </button>
+  type="submit" 
+  className="btn-submit" 
+  disabled={!validations.matriculeVerified || !validations.emailVerified || validations.hasExistingRequest || isSubmitting}
+>
+  {isSubmitting ? "Traitement en cours..." : "Soumettre"}
+</button>
             </div>
           </form>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Navbar from '../../components/Navbar';
 import Header from "../../components/Header";
 import "./Demande.css";
@@ -27,17 +27,8 @@ const Demande = () => {
     success: false
   });
 
-  // Charger les demandes
-  useEffect(() => {
-    fetchDemandes();
-  }, [currentPage, statusFilter]);
-
-  // Calculer les statistiques
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  // Calculer les statistiques - En utilisant useCallback pour éviter les recréations
+  const fetchStats = useCallback(async () => {
     try {
       // Dans une application réelle, vous feriez une API call spécifique pour les statistiques
       const response = await fetch('http://localhost:3001/api/transport-requests');
@@ -56,9 +47,10 @@ const Demande = () => {
     } catch (error) {
       console.error("Erreur lors du chargement des statistiques:", error);
     }
-  };
+  }, []); // Pas de dépendances externes
 
-  const fetchDemandes = async () => {
+  // Récupération des demandes - En utilisant useCallback
+  const fetchDemandes = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -84,7 +76,17 @@ const Demande = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, statusFilter]); // Dépendances externes
+
+  // Charger les demandes avec les dépendances correctes
+  useEffect(() => {
+    fetchDemandes();
+  }, [fetchDemandes]);
+
+  // Charger les statistiques une seule fois
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const handleConsulter = async (id) => {
     try {
@@ -103,7 +105,8 @@ const Demande = () => {
     }
   };
 
-  const handleStatusChange = async (id, status) => {
+  // Utiliser useCallback pour les fonctions utilisées dans des effets ou des handlers
+  const handleStatusChange = useCallback(async (id, status) => {
     setUpdateStatus({ loading: true, error: null, success: false });
     
     try {
@@ -135,7 +138,7 @@ const Demande = () => {
       console.error("Erreur lors de la mise à jour du statut:", error);
       setUpdateStatus({ loading: false, error: "Erreur de connexion au serveur", success: false });
     }
-  };
+  }, [selectedDemande, fetchDemandes, fetchStats]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);

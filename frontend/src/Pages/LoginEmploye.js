@@ -12,6 +12,7 @@ function LoginEmploye() {
     const [usernameError, setUsernameError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [accessError, setAccessError] = useState('');
+    const [transportRequestError, setTransportRequestError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     
@@ -23,6 +24,7 @@ function LoginEmploye() {
         setPasswordError('');
         setError('');
         setAccessError('');
+        setTransportRequestError('');
         
         // Vérifier le nom d'utilisateur
         if (!username.trim()) {
@@ -82,6 +84,9 @@ function LoginEmploye() {
                     setUsernameError(data.message);
                 } else if (data.errorType === 'password') {
                     setPasswordError(data.message);
+                } else if (data.errorType === 'transport_request') {
+                    // Nouvelle condition pour les demandes de transport non approuvées
+                    setTransportRequestError(data.message);
                 } else if (response.status === 403) {
                     // Erreur d'accès non autorisé
                     setAccessError(data.message || 'Vous n\'avez pas l\'autorisation d\'accéder au système.');
@@ -121,6 +126,15 @@ function LoginEmploye() {
                     <div className="access-error">
                         <i className="fas fa-exclamation-triangle"></i>
                         {accessError}
+                    </div>
+                )}
+                
+                {/* Afficher l'erreur spécifique pour les demandes de transport */}
+                {transportRequestError && (
+                    <div className="access-error">
+                        <i className="fas fa-exclamation-circle"></i>
+                        {transportRequestError}
+                        
                     </div>
                 )}
                 

@@ -1,0 +1,210 @@
+import React, { useState, useEffect } from "react";
+import "./Administrateurs.css";
+import Navbar from "../../components/Navbar";
+import Header from "../../components/Header";
+import Delete from "../../icons/delete.png";
+import edit from "../../icons/edit.png";
+import search from "../../icons/search.png";
+import Affecter from "./Affecter";
+
+const ReservationTable = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reservations, setReservations] = useState([]);
+  const [reservationToEdit, setReservationToEdit] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchReservations = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("http://localhost:5000/api/affectations");
+  
+      if (!response.ok) {
+        throw new Error("Erreur serveur lors de la récupération des affectations");
+      }
+  
+      const data = await response.json();
+      
+      if (!data.affectations || !Array.isArray(data.affectations)) {
+        throw new Error("Format de données incorrect");
+      }
+      
+      setReservations(data.affectations);
+      setError(null);
+    } catch (err) {
+      console.error("Erreur lors du chargement des affectations:", err);
+      setError("Impossible de charger les affectations: " + (err.message || "Erreur serveur"));
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchReservations();
+  }, []);
+
+  const handleAddReservation = (newReservation) => {
+    try {
+      if (reservationToEdit) {
+        setReservations(
+          reservations.map((res) => 
+            res.id === reservationToEdit.id ? newReservation : res
+          )
+        );
+        setReservationToEdit(null);
+      } else {
+        setReservations([newReservation, ...reservations]);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error("Erreur lors de la gestion de la réservation:", err);
+      alert("Erreur: " + err.message);
+    }
+  };
+
+  const handleDeleteReservation = async (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette affectation ?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:5000/api/affectations/${id}`, {
+        method: "DELETE",
+      });
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Erreur lors de la suppression");
+        }
+      } else if (!response.ok) {
+        throw new Error("Erreur lors de la suppression");
+      }
+
+      setReservations(reservations.filter((res) => res.id !== id));
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+      alert("Erreur: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditReservation = (reservation) => {
+    setReservationToEdit(reservation);
+    setIsModalOpen(true);
+  };
+
+  const filteredReservations = reservations.filter((reservation) => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      (reservation.matriculeBus?.toLowerCase() || "").includes(searchTermLower) ||
+      (reservation.matriculeChauffeur?.toLowerCase() || "").includes(searchTermLower) ||
+      (reservation.nomChauffeur?.toLowerCase() || "").includes(searchTermLower) ||
+      (reservation.marqueBus?.toLowerCase() || "").includes(searchTermLower)
+    );
+  });
+
+  return (
+    <div>
+      <Header />
+      <div className="ad">
+        <Navbar />
+        <div className="ad-container">
+          <h2 className="title">
+            <span className="underline">Affectation du transport</span>
+          </h2>
+          <br />
+          <p className="total">
+            Nombre total : <span className="count">{reservations.length}</span>
+          </p>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <div className="actions">
+            <div className="search-bar">
+              <input 
+                type="text" 
+                placeholder="Rechercher..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <button>
+                <img src={search} alt="search" />
+              </button>
+              <button 
+                className="add-reservation-btn" 
+                onClick={() => {
+                  setReservationToEdit(null);
+                  setIsModalOpen(true);
+                }}
+              >
+                Affecter
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="loading">Chargement des affectations...</div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Matricule Bus</th>
+                  <th>Matricule Chauffeur</th>
+                  <th>Places Disponibles</th>
+                  <th>Date de Mise en Charge</th>
+                  <th>Chauffeur</th>
+                  <th>Modèle de Bus</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReservations.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="no-data">
+                      Aucune affectation disponible
+                    </td>
+                  </tr>
+                ) : (
+                  filteredReservations.map((reservation, index) => (
+                    <tr key={reservation.id} className={index % 2 === 0 ? "gray-row" : ""}>
+                      <td>{reservation.matriculeBus}</td>
+                      <td>{reservation.matriculeChauffeur}</td>
+                      <td>{reservation.placesDisponibles}</td>
+                      <td>{new Date(reservation.date_prise_charge).toLocaleDateString('fr-FR')}</td>
+                      <td>{reservation.nomChauffeur || `${reservation.nom || ''} ${reservation.prenom || ''}`}</td>
+                      <td>{`${reservation.marqueBus || reservation.marque || ''} ${reservation.modele || ''}`}</td>
+                      <td>
+                        <button onClick={() => handleEditReservation(reservation)}>
+                          <img src={edit} alt="edit" />
+                        </button>
+                        <button onClick={() => handleDeleteReservation(reservation.id)}>
+                          <img src={Delete} alt="delete" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+
+          <Affecter
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setReservationToEdit(null);
+            }}
+            onAddReservation={handleAddReservation}
+            reservationToEdit={reservationToEdit}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+export default ReservationTable;
