@@ -859,7 +859,6 @@ app.get('/api/chauffeurs', async (req, res) => {
     });
   }
 });
-
 //-----------------------------------------------------liste sousadmins ------------------------------------------
 app.get('/api/sousadmins', async (req, res) => {
   // Connexion au serveur LDAP
@@ -1210,20 +1209,32 @@ app.post('/api/buses', async (req, res) => {
   }
 });
 
-// API pour mettre à jour un bus existant - Utilisation de l'ID à la place du matricule
+// API pour mettre à jour un bus existant avec condition pour le statut "affecte"
 app.put('/api/buses/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Vérifier d'abord si le bus existe et s'il est déjà affecté
+    const checkBus = await pool.query('SELECT statut FROM bus WHERE id = $1', [id]);
+    
+    if (checkBus.rows.length === 0) {
+      return res.status(404).json({ error: 'Bus non trouvé' });
+    }
+    
+    // Si le bus est affecté, on ne permet pas la modification
+    if (checkBus.rows[0].statut === 'affecté') {
+      return res.status(403).json({ 
+        error: 'Modification interdite', 
+        message: 'Impossible de modifier un bus avec le statut "affecté"' 
+      });
+    }
+    
     const { matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, nb_places } = req.body;
     
     const result = await pool.query(
       'UPDATE bus SET matricule = $1, marque = $2, modele = $3, type_energie = $4, couleur = $5, kilometrage = $6, type = $7, statut = $8, annee = $9, nb_places = $10 WHERE id = $11 RETURNING *',
       [matricule, marque, modele, type_energie, couleur, kilometrage, type, statut, annee, nb_places, id]
     );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Bus non trouvé' });
-    }
     
     res.json(result.rows[0]);
   } catch (err) {
@@ -1277,8 +1288,9 @@ app.get('/api/affectations', async (req, res) => {
         a.id,
         a.bus_id,
         a.chauffeur_id,
-        a.date_prise_charge,
         a.statut,
+        a.raison_modification,
+        a.date_prise_charge,
         b.matricule AS matricule_bus,
         b.marque AS marque_bus,
         b.modele,
@@ -1289,7 +1301,7 @@ app.get('/api/affectations', async (req, res) => {
       FROM affectations a
       JOIN bus b ON a.bus_id = b.id
       JOIN chauffeurs c ON a.chauffeur_id = c.ldap_id
-      ORDER BY a.date_prise_charge DESC
+      ORDER BY a.id DESC
     `);
     
     const affectations = result.rows.map(row => ({
@@ -1302,8 +1314,9 @@ app.get('/api/affectations', async (req, res) => {
       placesDisponibles: row.places_disponibles,
       matriculeChauffeur: row.matricule_chauffeur,
       nomChauffeur: `${row.nom} ${row.prenom}`,
-      date_prise_charge: new Date(row.date_prise_charge).toISOString().split('T')[0],
-      statut: row.statut
+      statut: row.statut,
+      date_prise_charge: row.date_prise_charge,
+      raison_modification: row.raison_modification
     }));
    
     res.json({ success: true, affectations });
@@ -1324,8 +1337,6 @@ app.post('/api/affectations', async (req, res) => {
   try {
     const { bus_id, chauffeur_id, date_prise_charge } = req.body;
     
-    console.log("Données reçues:", req.body);
-
     if (!bus_id || !chauffeur_id || !date_prise_charge) {
       return res.status(400).json({
         success: false,
@@ -1335,6 +1346,7 @@ app.post('/api/affectations', async (req, res) => {
 
     await client.query('BEGIN');
 
+    // Vérification du bus
     const busCheck = await client.query(
       'SELECT id, statut FROM bus WHERE id = $1',
       [bus_id]
@@ -1356,6 +1368,7 @@ app.post('/api/affectations', async (req, res) => {
       });
     }
 
+    // Vérification du chauffeur
     const chauffeurCheck = await client.query(
       'SELECT ldap_id, disponibilite FROM chauffeurs WHERE ldap_id = $1',
       [chauffeur_id]
@@ -1377,6 +1390,7 @@ app.post('/api/affectations', async (req, res) => {
       });
     }
 
+    // Création de l'affectation
     const result = await client.query(
       `INSERT INTO affectations 
       (bus_id, chauffeur_id, date_prise_charge, statut, created_at, updated_at) 
@@ -1385,11 +1399,13 @@ app.post('/api/affectations', async (req, res) => {
       [bus_id, chauffeur_id, date_prise_charge]
     );
 
+    // Mise à jour du statut du bus
     await client.query(
       'UPDATE bus SET statut = $1 WHERE id = $2',
       ['affecté', bus_id]
     );
 
+    // Mise à jour de la disponibilité du chauffeur
     await client.query(
       'UPDATE chauffeurs SET disponibilite = $1 WHERE ldap_id = $2',
       ['En service', chauffeur_id]
@@ -1397,19 +1413,20 @@ app.post('/api/affectations', async (req, res) => {
 
     await client.query('COMMIT');
 
+    // Récupération des détails complets
     const details = await client.query(
       `SELECT 
         a.id,
         a.bus_id,
         a.chauffeur_id,
+        a.date_prise_charge,
         b.matricule AS matricule_bus,
         b.marque,
         b.modele,
         b.nb_places,
         c.matricule AS matricule_chauffeur,
         c.nom,
-        c.prenom,
-        a.date_prise_charge
+        c.prenom
       FROM affectations a
       JOIN bus b ON a.bus_id = b.id
       JOIN chauffeurs c ON a.chauffeur_id = c.ldap_id
@@ -1426,10 +1443,10 @@ app.post('/api/affectations', async (req, res) => {
         matriculeBus: details.rows[0].matricule_bus,
         matriculeChauffeur: details.rows[0].matricule_chauffeur,
         placesDisponibles: details.rows[0].nb_places,
-        date_prise_charge: details.rows[0].date_prise_charge,
         nomChauffeur: `${details.rows[0].nom} ${details.rows[0].prenom}`,
         marqueBus: details.rows[0].marque,
-        modele: details.rows[0].modele
+        modele: details.rows[0].modele,
+        date_prise_charge: details.rows[0].date_prise_charge
       }
     });
   } catch (err) {
@@ -1445,12 +1462,231 @@ app.post('/api/affectations', async (req, res) => {
   }
 });
 
+// Modification de la route PUT pour gérer correctement les dates
+app.put('/api/affectations/:id', async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { id } = req.params;
+    const { bus_id, chauffeur_id, raison_modification, date_prise_charge } = req.body;
+    
+    // Logging pour le debug
+    console.log("Données reçues:", { 
+      id, 
+      bus_id, 
+      chauffeur_id, 
+      raison_modification, 
+      date_prise_charge,
+      date_type: typeof date_prise_charge 
+    });
+    
+    if (!bus_id || !chauffeur_id || !date_prise_charge) {
+      return res.status(400).json({
+        success: false,
+        message: 'Données d\'affectation incomplètes'
+      });
+    }
+
+    // Normalisation de la date
+    let formattedDate;
+    try {
+      // S'assurer que la date est au format YYYY-MM-DD pour PostgreSQL
+      if (typeof date_prise_charge === 'string' && date_prise_charge.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        formattedDate = date_prise_charge; // Déjà au bon format
+      } else {
+        // Tenter de parser la date
+        const parsedDate = new Date(date_prise_charge);
+        if (isNaN(parsedDate.getTime())) {
+          throw new Error('Format de date invalide');
+        }
+        formattedDate = parsedDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
+      }
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: `Format de date invalide: ${err.message}`
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // Vérification de l'affectation existante
+    const affectationCheck = await client.query(
+      'SELECT bus_id, chauffeur_id, date_prise_charge FROM affectations WHERE id = $1',
+      [id]
+    );
+    
+    if (affectationCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Affectation non trouvée'
+      });
+    }
+
+    const oldBusId = affectationCheck.rows[0].bus_id;
+    const oldChauffeurId = affectationCheck.rows[0].chauffeur_id;
+    const oldDate = affectationCheck.rows[0].date_prise_charge;
+
+    // Vérification du nouveau bus
+    const busCheck = await client.query(
+      'SELECT id, statut FROM bus WHERE id = $1',
+      [bus_id]
+    );
+    
+    if (busCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Nouveau bus non trouvé'
+      });
+    }
+    
+    if (bus_id !== oldBusId && busCheck.rows[0].statut !== 'disponible') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Le nouveau bus sélectionné n\'est pas disponible'
+      });
+    }
+
+    // Vérification du nouveau chauffeur
+    const chauffeurCheck = await client.query(
+      'SELECT ldap_id, disponibilite FROM chauffeurs WHERE ldap_id = $1',
+      [chauffeur_id]
+    );
+    
+    if (chauffeurCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Nouveau chauffeur non trouvé'
+      });
+    }
+    
+    if (chauffeur_id !== oldChauffeurId && chauffeurCheck.rows[0].disponibilite !== 'Disponible') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Le nouveau chauffeur sélectionné n\'est pas disponible'
+      });
+    }
+
+    // Si aucune modification n'est faite, utiliser la date originale
+    const useDateValue = (
+      bus_id === oldBusId && 
+      chauffeur_id === oldChauffeurId && 
+      !raison_modification
+    ) ? oldDate : formattedDate;
+
+    console.log("Date utilisée pour la mise à jour:", useDateValue);
+
+    // Mise à jour de l'affectation
+    const result = await client.query(
+      `UPDATE affectations 
+      SET bus_id = $1, chauffeur_id = $2, 
+          updated_at = CURRENT_TIMESTAMP, 
+          raison_modification = $3,
+          date_prise_charge = $4
+      WHERE id = $5
+      RETURNING *`,
+      [bus_id, chauffeur_id, raison_modification, useDateValue, id]
+    );
+
+    // Gestion des changements de bus
+    if (bus_id !== oldBusId) {
+      // Si la raison du changement est "bus_en_panne", mettre l'ancien bus en statut "en panne"
+      if (raison_modification === 'bus_en_panne') {
+        await client.query(
+          'UPDATE bus SET statut = $1 WHERE id = $2',
+          ['en panne', oldBusId]
+        );
+      } else {
+        // Sinon, libérer l'ancien bus (disponible)
+        await client.query(
+          'UPDATE bus SET statut = $1 WHERE id = $2',
+          ['disponible', oldBusId]
+        );
+      }
+      
+      // Affecter le nouveau bus
+      await client.query(
+        'UPDATE bus SET statut = $1 WHERE id = $2',
+        ['affecté', bus_id]
+      );
+    }
+
+    // Gestion des changements de chauffeur
+    if (chauffeur_id !== oldChauffeurId) {
+      // Libérer l'ancien chauffeur
+      await client.query(
+        'UPDATE chauffeurs SET disponibilite = $1 WHERE ldap_id = $2',
+        ['Disponible', oldChauffeurId]
+      );
+      
+      // Affecter le nouveau chauffeur
+      await client.query(
+        'UPDATE chauffeurs SET disponibilite = $1 WHERE ldap_id = $2',
+        ['En service', chauffeur_id]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    // Récupération des détails complets
+    const details = await client.query(
+      `SELECT 
+        a.id,
+        a.bus_id,
+        a.chauffeur_id,
+        a.date_prise_charge,
+        b.matricule AS matricule_bus,
+        b.marque,
+        b.modele,
+        b.nb_places,
+        c.matricule AS matricule_chauffeur,
+        c.nom,
+        c.prenom
+      FROM affectations a
+      JOIN bus b ON a.bus_id = b.id
+      JOIN chauffeurs c ON a.chauffeur_id = c.ldap_id
+      WHERE a.id = $1`,
+      [result.rows[0].id]
+    );
+
+    res.status(200).json({
+      success: true,
+      affectation: {
+        id: details.rows[0].id,
+        bus_id: details.rows[0].bus_id,
+        chauffeur_id: details.rows[0].chauffeur_id,
+        matriculeBus: details.rows[0].matricule_bus,
+        matriculeChauffeur: details.rows[0].matricule_chauffeur,
+        placesDisponibles: details.rows[0].nb_places,
+        nomChauffeur: `${details.rows[0].nom} ${details.rows[0].prenom}`,
+        marqueBus: details.rows[0].marque,
+        modele: details.rows[0].modele,
+        date_prise_charge: details.rows[0].date_prise_charge,
+        raison_modification: raison_modification
+      }
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Erreur lors de la modification d\'une affectation:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur lors de la modification de l\'affectation',
+      error: err.message
+    });
+  } finally {
+    client.release();
+  }
+});
 // Supprimer une affectation
 app.delete('/api/affectations/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Récupérer les informations de l'affectation avant suppression
     const affectationCheck = await pool.query(
       'SELECT bus_id, chauffeur_id FROM affectations WHERE id = $1',
       [id]
@@ -1466,25 +1702,21 @@ app.delete('/api/affectations/:id', async (req, res) => {
     const busId = affectationCheck.rows[0].bus_id;
     const chauffeurId = affectationCheck.rows[0].chauffeur_id;
     
-    // Début d'une transaction
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
       
-      // Supprimer l'affectation
       await client.query(
         'DELETE FROM affectations WHERE id = $1',
         [id]
       );
       
-      // Mettre à jour le statut du bus
       await client.query(
         'UPDATE bus SET statut = $1 WHERE id = $2',
         ['disponible', busId]
       );
       
-      // Mettre à jour la disponibilité du chauffeur
       await client.query(
         'UPDATE chauffeurs SET disponibilite = $1 WHERE ldap_id = $2',
         ['Disponible', chauffeurId]
@@ -1951,7 +2183,7 @@ app.delete('/api/external-buses/:id', async (req, res) => {
     res.status(500).json({ success: false, error: 'Erreur serveur' });
   }
 });
-
+//--------------------------------------------Les lignes---------------------------------
 //========================================
 // GET - Fetch all lines with stops
 app.get('/api/lines', async (req, res) => {
@@ -2555,7 +2787,7 @@ app.get('/api/line-assignments/:lineId', async (req, res) => {
   }
 });
 
-
+//---------------------------------------------Les trajet----------------------------------------
 // Route pour créer un trajet
 app.post('/api/trajets', async (req, res) => {
   const client = await pool.connect();

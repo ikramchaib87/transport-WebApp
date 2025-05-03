@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from "react";
 import "./Affectation.css";
+import { format, parse, isValid } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
+  
   const [formData, setFormData] = useState({
     bus: "",
     chauffeur: "",
     date_prise_charge: "",
+    raison_modification: ""
   });
 
-  const [dateInputs, setDateInputs] = useState({
-    jour: "",
-    mois: "",
-    annee: ""
-  });
-
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [buses, setBuses] = useState([]);
   const [chauffeurs, setChauffeurs] = useState([]);
   const [busDetails, setBusDetails] = useState(null);
@@ -21,6 +20,36 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Fonction utilitaire pour normaliser et valider les formats de date
+  const normalizeDateFormat = (dateStr) => {
+    if (!dateStr) return "";
+    
+    // Si c'est déjà au format YYYY-MM-DD, on le garde tel quel
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // Si c'est au format DD/MM/YYYY, on le convertit
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      const [day, month, year] = dateStr.split('/');
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Pour les autres formats, on essaie de créer une date valide
+    try {
+      const date = new Date(dateStr);
+      if (isValid(date)) {
+        return format(date, 'yyyy-MM-dd');
+      }
+    } catch (e) {
+      console.error("Erreur de conversion de date:", e);
+    }
+    
+    // Si rien ne fonctionne, on retourne la chaîne originale
+    return dateStr;
+  };
+
+  // Générer les options pour les jours, mois et années
   const jours = Array.from({ length: 31 }, (_, i) => i + 1);
   const mois = [
     { value: "01", label: "Janvier" },
@@ -82,54 +111,48 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
         const availableChauffeurs = chauffeursData.chauffeurs?.filter(
           chauffeur => chauffeur.disponibilite === "Disponible" || 
             (reservationToEdit && (chauffeur.id === reservationToEdit.chauffeur_id || 
-                                  chauffeur.ldap_id === reservationToEdit.chauffeur_id))
+                                 chauffeur.ldap_id === reservationToEdit.chauffeur_id))
         ) || [];
 
         setBuses(availableBuses);
         setChauffeurs(availableChauffeurs);
 
         if (reservationToEdit) {
+          // Pour une édition, on récupère et normalise la date
+          const normalizedDate = normalizeDateFormat(reservationToEdit.date_prise_charge);
+          
           setFormData({
             bus: reservationToEdit.bus_id ? reservationToEdit.bus_id.toString() : "",
             chauffeur: reservationToEdit.chauffeur_id || "",
-            date_prise_charge: reservationToEdit.date_prise_charge || ""
+            date_prise_charge: normalizedDate,
+            raison_modification: reservationToEdit.raison_modification || ""
           });
-
-          if (reservationToEdit.date_prise_charge) {
-            let dateParts;
-            try {
-              if (reservationToEdit.date_prise_charge.includes('/')) {
-                dateParts = reservationToEdit.date_prise_charge.split('/');
-                setDateInputs({
-                  jour: dateParts[0].padStart(2, '0'),
-                  mois: dateParts[1].padStart(2, '0'),
-                  annee: dateParts[2]
-                });
-              } else {
-                const date = new Date(reservationToEdit.date_prise_charge);
-                setDateInputs({
-                  jour: date.getDate().toString().padStart(2, '0'),
-                  mois: (date.getMonth() + 1).toString().padStart(2, '0'),
-                  annee: date.getFullYear().toString()
-                });
-              }
-            } catch (e) {
-              console.error("Erreur de conversion de date:", e);
+          
+          // On met à jour la date sélectionnée pour l'affichage des sélecteurs
+          try {
+            const parsedDate = parse(normalizedDate, 'yyyy-MM-dd', new Date());
+            if (isValid(parsedDate)) {
+              setSelectedDate(parsedDate);
+            } else {
+              setSelectedDate(new Date());
             }
+          } catch (err) {
+            console.error("Erreur lors du parsing de la date:", err);
+            setSelectedDate(new Date());
           }
         } else {
+          // Pour une nouvelle affectation, on utilise la date d'aujourd'hui
+          const today = new Date();
+          const formattedToday = format(today, 'yyyy-MM-dd');
+          
           setFormData({
             bus: "",
             chauffeur: "",
-            date_prise_charge: ""
+            date_prise_charge: formattedToday,
+            raison_modification: ""
           });
           
-          const today = new Date();
-          setDateInputs({
-            jour: today.getDate().toString().padStart(2, '0'),
-            mois: (today.getMonth() + 1).toString().padStart(2, '0'),
-            annee: today.getFullYear().toString()
-          });
+          setSelectedDate(today);
         }
       } catch (err) {
         setError(`Erreur de chargement: ${err.message}`);
@@ -160,17 +183,6 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
     }
   }, [formData.chauffeur, chauffeurs]);
 
-  useEffect(() => {
-    if (dateInputs.jour && dateInputs.mois && dateInputs.annee) {
-      const dateAPI = `${dateInputs.annee}-${dateInputs.mois}-${dateInputs.jour}`;
-      
-      setFormData(prev => ({
-        ...prev,
-        date_prise_charge: dateAPI
-      }));
-    }
-  }, [dateInputs]);
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -180,33 +192,82 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
 
   const handleDateChange = (e) => {
     const { name, value } = e.target;
-    setDateInputs(prev => ({
-      ...prev,
-      [name]: value.padStart(2, '0')
-    }));
+    
+    // Créer une nouvelle date basée sur la date actuellement sélectionnée
+    const newDate = new Date(selectedDate);
+    
+    // Mettre à jour la partie appropriée de la date
+    if (name === "jour") {
+      newDate.setDate(parseInt(value));
+    } else if (name === "mois") {
+      // Les mois sont indexés à partir de 0 en JavaScript
+      newDate.setMonth(parseInt(value) - 1);
+    } else if (name === "annee") {
+      newDate.setFullYear(parseInt(value));
+    }
+    
+    // Vérifier que la date est valide
+    if (isValid(newDate)) {
+      // Mettre à jour la date sélectionnée
+      setSelectedDate(newDate);
+      
+      // Mettre à jour le format de date pour l'API (YYYY-MM-DD)
+      setFormData(prev => ({
+        ...prev,
+        date_prise_charge: format(newDate, 'yyyy-MM-dd')
+      }));
+    } else {
+      console.error("Date invalide générée:", newDate);
+    }
   };
 
   const handleSubmit = async () => {
     if (!formData.bus || !formData.chauffeur || !formData.date_prise_charge) {
-      setError("Veuillez remplir tous les champs");
+      setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
   
+    // Si c'est une modification et qu'on change de bus ou chauffeur, 
+    // on doit fournir une raison
+    if (reservationToEdit && 
+        (formData.bus !== reservationToEdit.bus_id.toString() || 
+         formData.chauffeur !== reservationToEdit.chauffeur_id) &&
+        !formData.raison_modification) {
+      setError("Veuillez indiquer la raison de la modification");
+      return;
+    }
+
     setLoading(true);
     setError(null);
   
     try {
+      // S'assurer que la date est au format YYYY-MM-DD
+      const dateToSend = formData.date_prise_charge;
+      
+      // Nous allons toujours envoyer la date au format YYYY-MM-DD
+      // Mais nous vérifions qu'elle est bien valide avant
+      if (!dateToSend.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        throw new Error("Format de date invalide. Utilisez le format YYYY-MM-DD.");
+      }
+      
       const affectationData = {
         bus_id: parseInt(formData.bus),
         chauffeur_id: formData.chauffeur,
-        date_prise_charge: formData.date_prise_charge
+        date_prise_charge: dateToSend
       };
+      
+      // Ajouter la raison de modification si c'est une modification
+      if (reservationToEdit) {
+        affectationData.raison_modification = formData.raison_modification;
+      }
+      
+      console.log("Données envoyées à l'API:", affectationData);
       
       const method = reservationToEdit ? "PUT" : "POST";
       const endpoint = reservationToEdit 
         ? `http://localhost:5000/api/affectations/${reservationToEdit.id}`
         : "http://localhost:5000/api/affectations";
-      
+        
       const response = await fetch(endpoint, {
         method: method,
         headers: { "Content-Type": "application/json" },
@@ -231,11 +292,16 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
     }
   };
 
+  // Obtenir le jour, mois et année à partir de selectedDate
+  const getSelectedDay = () => selectedDate.getDate().toString().padStart(2, '0');
+  const getSelectedMonth = () => (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+  const getSelectedYear = () => selectedDate.getFullYear().toString();
+
+  // Formatter la date pour l'affichage
   const getFormattedDate = () => {
-    if (dateInputs.jour && dateInputs.mois && dateInputs.annee) {
-      return `${dateInputs.jour}/${dateInputs.mois}/${dateInputs.annee}`;
-    }
-    return "";
+    return isValid(selectedDate) 
+      ? format(selectedDate, 'dd/MM/yyyy', { locale: fr })
+      : "";
   };
 
   if (!isOpen) return null;
@@ -296,7 +362,7 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
               <div className="date-select-group">
                 <select 
                   name="jour" 
-                  value={dateInputs.jour}
+                  value={getSelectedDay()}
                   onChange={handleDateChange}
                   disabled={loading}
                   className="date-select"
@@ -311,7 +377,7 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
                 
                 <select 
                   name="mois" 
-                  value={dateInputs.mois}
+                  value={getSelectedMonth()}
                   onChange={handleDateChange}
                   disabled={loading}
                   className="date-select"
@@ -326,7 +392,7 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
                 
                 <select 
                   name="annee" 
-                  value={dateInputs.annee}
+                  value={getSelectedYear()}
                   onChange={handleDateChange}
                   disabled={loading}
                   className="date-select"
@@ -340,7 +406,24 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
                 </select>
               </div>
             </div>
-            
+            {reservationToEdit && (
+              <div className="form-group">
+                <label htmlFor="raison_modification">Raison de modification:</label>
+                <select
+                  id="raison_modification"
+                  name="raison_modification"
+                  value={formData.raison_modification}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className="form-select"
+                >
+                  <option value="">Sélectionner une raison</option>
+                  <option value="bus_en_panne">Bus en panne</option>
+                  <option value="chauffeur_absent">Chauffeur absent</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+            )}
             {getFormattedDate() && (
               <span className="date-formatted">
                 Date sélectionnée: {getFormattedDate()}
@@ -397,4 +480,5 @@ const Affecter = ({ isOpen, onClose, onAddReservation, reservationToEdit }) => {
     </>
   );
 };
+
 export default Affecter;

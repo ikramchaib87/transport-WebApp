@@ -154,12 +154,12 @@ const ChauffTable = () => {
                             // Afficher les données des chauffeurs
                             filteredChauffeurs.map((chauffeur, index) => (
                                 <tr key={chauffeur.ldap_id || index} className={index % 2 === 0 ? "gray-row" : ""}>
-                                    <td>{chauffeur.nom || "—"}</td>
-                                    <td>{chauffeur.prenom || "—"}</td>
-                                    <td>{chauffeur.matricule || "—"}</td>
-                                    <td>{chauffeur.tel || "—"}</td>
-                                    <td>{chauffeur.email || "—"}</td>
-                                    <td className={getStatusClass(chauffeur.disponibilite)}>{chauffeur.disponibilite || "—"}</td>
+                                    <td>{chauffeur.nom }</td>
+                                    <td>{chauffeur.prenom  }</td>
+                                    <td>{chauffeur.matricule  }</td>
+                                    <td>{chauffeur.tel }</td>
+                                    <td>{chauffeur.email }</td>
+                                    <td className={getStatusClass(chauffeur.disponibilite)}>{chauffeur.disponibilite}</td>
                                     <td className="action-buttons">
                                         <img 
                                             src={viewDetails} 

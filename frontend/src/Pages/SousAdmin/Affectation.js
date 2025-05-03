@@ -6,7 +6,9 @@ import Delete from "../../icons/delete.png";
 import edit from "../../icons/edit.png";
 import search from "../../icons/search.png";
 import Affecter from "./Affecter";
-
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
+import viewDetails from "../../icons/view.png";
 const ReservationTable = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reservations, setReservations] = useState([]);
@@ -14,7 +16,9 @@ const ReservationTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const [selectedAffectation, setSelectedAffectation] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
   const fetchReservations = async () => {
     try {
       setLoading(true);
@@ -98,6 +102,17 @@ const ReservationTable = () => {
     setIsModalOpen(true);
   };
 
+  const formatDate = (dateString) => {
+    try {
+      // Gérer les chaînes de date dans différents formats
+      const date = parseISO(dateString);
+      return format(date, 'dd/MM/yyyy', { locale: fr });
+    } catch (error) {
+      console.error("Erreur de formatage de date:", error, dateString);
+      return dateString; // Retourner la chaîne originale en cas d'erreur
+    }
+  };
+
   const filteredReservations = reservations.filter((reservation) => {
     const searchTermLower = searchTerm.toLowerCase();
     return (
@@ -107,7 +122,10 @@ const ReservationTable = () => {
       (reservation.marqueBus?.toLowerCase() || "").includes(searchTermLower)
     );
   });
-
+  const handleViewDetails = (affectation) => {
+    setSelectedAffectation(affectation);
+    setIsDetailModalOpen(true);
+  };
   return (
     <div>
       <Header />
@@ -175,10 +193,13 @@ const ReservationTable = () => {
                       <td>{reservation.matriculeBus}</td>
                       <td>{reservation.matriculeChauffeur}</td>
                       <td>{reservation.placesDisponibles}</td>
-                      <td>{new Date(reservation.date_prise_charge).toLocaleDateString('fr-FR')}</td>
+                      <td>{formatDate(reservation.date_prise_charge)}</td>
                       <td>{reservation.nomChauffeur || `${reservation.nom || ''} ${reservation.prenom || ''}`}</td>
                       <td>{`${reservation.marqueBus || reservation.marque || ''} ${reservation.modele || ''}`}</td>
                       <td>
+                      <button onClick={() => handleViewDetails(reservation)}>
+                      <img src={viewDetails} alt="view" />
+                       </button>
                         <button onClick={() => handleEditReservation(reservation)}>
                           <img src={edit} alt="edit" />
                         </button>
@@ -204,6 +225,43 @@ const ReservationTable = () => {
           />
         </div>
       </div>
+      {isDetailModalOpen && selectedAffectation && (
+  <>
+    <div className="reservation-overlay" onClick={() => setIsDetailModalOpen(false)}></div>
+    <div className="reservation-detail-modal">
+      <h2>Détails de l'affectation</h2>
+      
+      <div className="detail-section">
+        <h3>Informations sur le bus</h3>
+        <p><strong>Matricule:</strong> {selectedAffectation.matriculeBus}</p>
+        <p><strong>Marque:</strong> {selectedAffectation.marqueBus}</p>
+        <p><strong>Modèle:</strong> {selectedAffectation.modele}</p>
+        <p><strong>Places disponibles:</strong> {selectedAffectation.placesDisponibles}</p>
+      </div>
+
+      <div className="detail-section">
+        <h3>Informations sur le chauffeur</h3>
+        <p><strong>Matricule:</strong> {selectedAffectation.matriculeChauffeur}</p>
+        <p><strong>Nom complet:</strong> {selectedAffectation.nomChauffeur}</p>
+      </div>
+
+      <div className="detail-section">
+        <h3>Dates</h3>
+        <p><strong>Date de mise en charge:</strong> {formatDate(selectedAffectation.date_prise_charge)}</p>
+        {selectedAffectation.raison_modification && (
+          <p><strong>Raison de modification:</strong> {selectedAffectation.raison_modification}</p>
+        )}
+      </div>
+
+      <button 
+        className="close-detail-button" 
+        onClick={() => setIsDetailModalOpen(false)}
+      >
+        Fermer
+      </button>
+    </div>
+  </>
+)}
     </div>
   );
 };

@@ -15,6 +15,7 @@ const BusTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(null); // Pour suivre quel bus est en cours de mise à jour
 
   // URL de base de l'API
   const API_URL = "http://localhost:5000/api";
@@ -35,7 +36,7 @@ const BusTable = () => {
         couleur: bus.couleur,
         kilometrage: bus.kilometrage,
         type: bus.type,
-        nb_places:bus.nb_places,
+        nb_places: bus.nb_places,
         statue: bus.statut,
         annee: bus.annee
       }));
@@ -75,7 +76,7 @@ const BusTable = () => {
         couleur: bus.couleur,
         kilometrage: bus.kilometrage,
         type: bus.type,
-        nb_places:bus.nb_places,
+        nb_places: bus.nb_places,
         statue: bus.statut,
         annee: bus.annee
       }));
@@ -171,7 +172,10 @@ const BusTable = () => {
     
     // Nettoyer l'intervalle lorsque le composant est démonté
     return () => clearInterval(intervalId);
-  }, [buses, checkBusReservation]); // Added checkBusReservation dependency
+  }, [buses, checkBusReservation]);
+
+ 
+  
 
   return (
     <div>
@@ -240,6 +244,7 @@ const BusTable = () => {
                       <span className={`status-badge status-${bus.statue.replace(/\s+/g, '-')}`}>
                         {bus.statue}
                       </span>
+ 
                     </td>
                     <td>
                       <button onClick={() => handleEditBus(bus)}>

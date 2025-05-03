@@ -12,8 +12,8 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
     type: "",
     annee: "",
     kilometrage: "",
-    nb_places:"",
-    statue: ""
+    nb_places: "",
+    statue: "disponible"
   });
 
   const [errors, setErrors] = useState({});
@@ -33,7 +33,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
         type: "",
         annee: "",
         kilometrage: "",
-        nb_places:"",
+        nb_places: "",
         statue: "disponible"
       });
     }
@@ -104,10 +104,19 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
     }
   };
 
+  // Vérifie si le bus est affecté et désactive le formulaire si c'est le cas
+  const isAffected = busToEdit && formData.statue === "affecté";
+
   return (
     <div className="bus-modal-overlay">
       <div className="bus-modal-content">
         <h2>{busToEdit ? "Modifier un bus" : "Ajouter un bus"}</h2>
+        
+        {isAffected && (
+          <div className="alert alert-warning">
+            Ce bus est affecté. Aucune modification n'est permise.
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="bus-form">
           <div className="bus-form-grid">
@@ -128,6 +137,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className={`bus-input ${errors.matricule ? "input-error" : ""}`}
                 value={formData.matricule} 
                 onChange={handleChange} 
+                disabled={isAffected}
                 required 
               />
               {errors.matricule && <span className="error-text">{errors.matricule}</span>}
@@ -141,6 +151,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className={`bus-input ${errors.model ? "input-error" : ""}`}
                 value={formData.model} 
                 onChange={handleChange} 
+                disabled={isAffected}
                 required 
               />
               {errors.model && <span className="error-text">{errors.model}</span>}
@@ -154,6 +165,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className={`bus-input ${errors.mark ? "input-error" : ""}`}
                 value={formData.mark} 
                 onChange={handleChange} 
+                disabled={isAffected}
                 required 
               />
               {errors.mark && <span className="error-text">{errors.mark}</span>}
@@ -167,6 +179,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className="bus-input"
                 value={formData.couleur} 
                 onChange={handleChange} 
+                disabled={isAffected}
               />
             </div>
 
@@ -178,6 +191,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className={`bus-input ${errors.typeEng ? "input-error" : ""}`}
                 value={formData.typeEng} 
                 onChange={handleChange} 
+                disabled={isAffected}
                 required 
               />
               {errors.typeEng && <span className="error-text">{errors.typeEng}</span>}
@@ -191,6 +205,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className={`bus-input ${errors.type ? "input-error" : ""}`}
                 value={formData.type} 
                 onChange={handleChange} 
+                disabled={isAffected}
                 required 
               />
               {errors.type && <span className="error-text">{errors.type}</span>}
@@ -204,6 +219,7 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className={`bus-input ${errors.annee ? "input-error" : ""}`}
                 value={formData.annee} 
                 onChange={handleChange} 
+                disabled={isAffected}
               />
               {errors.annee && <span className="error-text">{errors.annee}</span>}
             </div>
@@ -216,25 +232,47 @@ const AddBus = ({ isOpen, onClose, onAddBus, busToEdit }) => {
                 className={`bus-input ${errors.kilometrage ? "input-error" : ""}`}
                 value={formData.kilometrage} 
                 onChange={handleChange}
+                disabled={isAffected}
               />
               {errors.kilometrage && <span className="error-text">{errors.kilometrage}</span>}
             </div>
+
             <div className="bus-form-group">
-              <label className="bus-label">nb_places</label>
+              <label className="bus-label">Nombre de places</label>
               <input 
                 type="number" 
                 name="nb_places" 
                 className={`bus-input ${errors.nb_places ? "input-error" : ""}`}
                 value={formData.nb_places} 
                 onChange={handleChange}
+                disabled={isAffected}
               />
-              {errors.nb_places&& <span className="error-text">{errors.nb_places}</span>}
+              {errors.nb_places && <span className="error-text">{errors.nb_places}</span>}
+            </div>
+
+            {/* Champ pour le statut avec gestion des différentes conditions */}
+            <div className="bus-form-group">
+              <label className="bus-label">Statut</label>
+              <select
+                name="statue"
+                className="bus-input"
+                value={formData.statue}
+                onChange={handleChange}
+                disabled={isAffected || (busToEdit && formData.statue === "réservé")}
+              >
+                <option value="disponible">Disponible</option>
+                <option value="en panne">En panne</option>
+                {/* Options conditionnelles uniquement si on est en mode édition et si c'est déjà le statut actuel */}
+                {busToEdit && formData.statue === "affecté" && (
+                  <option value="affecté">Affecté</option>
+                )}
+              </select>
             </div>
           </div>
 
           <div className="bus-form-buttons">
             <button type="button" className="bus-btn-cancel" onClick={onClose}>Annuler</button>
-            <button type="submit" className="bus-btn-submit">
+            <button type="submit" className="bus-btn-submit" disabled={isAffected}>
               {busToEdit ? "Modifier" : "Ajouter"}
             </button>
           </div>
