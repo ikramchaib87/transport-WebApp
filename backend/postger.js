@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Configuration LDAP
-const LDAP_URL = 'ldap://192.168.1.8';
+const LDAP_URL = 'ldap://172.20.10.2';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 
 const pool = new Pool({
