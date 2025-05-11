@@ -18,11 +18,5 @@ router.put('/stops/:id', lineController.updateStop);
 router.delete('/stops/:id', lineController.deleteStop);
 router.get('/stops/search', lineController.searchStops);
 
-// Bus assignment routes
-router.post('/assign-bus', lineController.assignBusToLine);
-router.post('/unassign-bus', lineController.unassignBusFromLine);
-router.get('/bus-assignments/:busId', lineController.getBusAssignments);
-router.get('/line-assignments/:lineId', lineController.getLineAssignments);
-router.get('/bus-line-assignments', lineController.getAllBusLineAssignments);
 
 module.exports = router;

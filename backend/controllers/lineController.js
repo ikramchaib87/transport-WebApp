@@ -429,7 +429,7 @@ exports.searchStops = async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur lors de la recherche d\'arrêts' });
   }
 };
-
+/*
 // Bus assignment methods
 exports.assignBusToLine = async (req, res) => {
   const { busId, lineId } = req.body;
@@ -555,3 +555,43 @@ exports.getAllBusLineAssignments = async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
+exports.getAllBusLineAssignments = async (req, res) => {
+ const { busId } = req.params;
+  
+  try {
+    const result = await pool.query(
+      `SELECT l.id as line_id, l.number as line_number, l.name as line_name, 
+              a.assigned_at, a.is_active
+       FROM bus_line_assignments a
+       JOIN lines l ON a.line_id = l.id
+       WHERE a.bus_id = $1 AND a.is_active = TRUE`,
+      [busId]
+    );
+
+    res.json({ success: true, assignments: result.rows });
+  } catch (err) {
+    console.error('Error fetching bus assignments:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+  };
+  // Get assignments for a specific line
+app.get('/api/line-assignments/:lineId', async (req, res) => {
+  const { lineId } = req.params;
+  
+  try {
+    const result = await pool.query(
+      `SELECT b.id as bus_id, b.matricule, b.marque, b.modele, 
+              b.chauffeur_nom, b.chauffeur_prenom, b.statut,
+              a.assigned_at, a.is_active
+       FROM bus_line_assignments a
+       JOIN external_buses b ON a.bus_id = b.id
+       WHERE a.line_id = $1 AND a.is_active = TRUE`,
+      [lineId]
+    );
+
+    res.json({ success: true, assignments: result.rows });
+  } catch (err) {
+    console.error('Error fetching line assignments:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});*/

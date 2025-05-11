@@ -10,12 +10,15 @@ const adminRoutes = require('./routes/adminRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const externalBusRoutes = require('./routes/externalBusRoutes');
+const aasignmentLineRoutes = require('./routes/aasignmentLineRoutes');
+const lineRoutes = require('./routes/lineRoutes');
+const tripRoutes = require('./routes/tripRoutes');
 const fs = require('fs');
 const uploadDir = path.join(__dirname, 'uploads');
 const driversDir = path.join(uploadDir, 'drivers');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 if (!fs.existsSync(driversDir)) fs.mkdirSync(driversDir, { recursive: true });
-const lineRoutes = require('./routes/lineRoutes');
+
 
 const app = express();
 
@@ -33,5 +36,6 @@ app.use('/api/affectations', assignmentRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/external-buses', externalBusRoutes);
 app.use('/api/lines', lineRoutes);
-
+app.use('/api', aasignmentLineRoutes);
+app.use('/api/trajets',tripRoutes);
 module.exports = app;
