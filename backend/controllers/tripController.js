@@ -3,7 +3,7 @@ const pool = require('../config/db');
 exports.posttrajets = async (req, res) => {
   const client = await pool.connect();
   
-  try {
+ try {
     await client.query('BEGIN');
     
     const {

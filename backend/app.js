@@ -37,5 +37,6 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/external-buses', externalBusRoutes);
 app.use('/api/lines', lineRoutes);
 app.use('/api', aasignmentLineRoutes);
-app.use('/api/trajets',tripRoutes);
+app.use('/api', tripRoutes); 
+
 module.exports = app;

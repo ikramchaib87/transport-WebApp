@@ -18,7 +18,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ====================================================
 
 // Configuration LDAP
-const LDAP_URL = 'ldap://192.168.160.220';
+const LDAP_URL = 'ldap://192.168.100.220';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 const LDAP_GROUP_BASE = 'ou=Group,dc=contoso-lab,dc=com';
 
