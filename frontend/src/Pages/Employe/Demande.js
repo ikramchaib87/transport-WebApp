@@ -42,7 +42,25 @@ const TransportRequest = () => {
   // Ajoutez ces états pour la validation de l'image
   const [imageError, setImageError] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [availableLines, setAvailableLines] = useState([]);
+  //ligne 
+  const [showCustomItineraire, setShowCustomItineraire] = useState(false);
+  const fetchAvailableLines = async () => {
+ 
+    try {
+      const response = await fetch('http://localhost:5000/api/lines');
+      const data = await response.json();
+      setAvailableLines(data);
+    } catch (error) {
+      console.error('Error fetching lines:', error);
+    }
+};
+
+
+  fetchAvailableLines();
   
+
+
   // Liste des wilayas d'Algérie
   const wilayas = useMemo(() => [
     "Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", 
@@ -92,20 +110,6 @@ const TransportRequest = () => {
     return communes;
   }, [wilayas]);
 
-  // Liste des itinéraires disponibles
-  const itineraires = useMemo(() => [
-    // Itinéraires concernant Hidra
-    "Birkhadem → Hydra",
-    "Bir Mourad Raïs → Hydra",
-    "El Biar → Hydra",
-    "Ben Aknoun → Hydra",
-    "Kouba → Hydra",
-    "Hussein Dey → Hydra",
-    "Sidi Yahia → Hydra",
-    "Dély Ibrahim → Hydra",
-    "Chevalley → Hydra",
-    "hydra→ Bordj El Kiffan"
-  ], []);
 
   const fonction = useMemo(() => [
     "Ingénieur",
@@ -392,71 +396,61 @@ const TransportRequest = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (isSubmitting) return;
+  if (!validations.matriculeVerified) {
+    alert("Veuillez vérifier votre matricule avant de soumettre le formulaire.");
+    return;
+  }
+  if (!validations.emailVerified) {
+    alert("Veuillez vérifier votre email avant de soumettre le formulaire.");
+    return;
+  }
+  if (!formData.image) {
+    alert("Veuillez télécharger une photo d'identité.");
+    return;
+  }
 
-    // Éviter les soumissions multiples
-    if (isSubmitting) {
-      return;
-    }
-    // Vérifier si le matricule est validé avant de soumettre
-    if (!validations.matriculeVerified) {
-      alert("Veuillez vérifier votre matricule avant de soumettre le formulaire.");
-      return;
-    }
+  setIsSubmitting(true);
+  
+  try {
+    const formDataToSubmit = new FormData();
     
-    // Vérifier si l'email est validé avant de soumettre
-    if (!validations.emailVerified) {
-      alert("Veuillez vérifier votre email avant de soumettre le formulaire.");
-      return;
-    }
-    
-    if (!formData.image) {
-      alert("Veuillez télécharger une photo d'identité.");
-      return;
-    }
-    // Activer l'état de soumission
-    setIsSubmitting(true);
-    
-    try {
-      // Créer un FormData pour pouvoir envoyer le fichier image
-      const formDataToSubmit = new FormData();
-      
-      // Ajouter tous les champs textuels à FormData
-      Object.keys(formData).forEach(key => {
-        if (key !== 'image') {
-          formDataToSubmit.append(key, formData[key]);
-        }
-      });
-      
-      // Ajouter l'image si elle existe
-      if (formData.image) {
-        formDataToSubmit.append('image', formData.image);
+    // Ajouter tous les champs
+    Object.keys(formData).forEach(key => {
+      if (key !== 'image') {
+        formDataToSubmit.append(key, formData[key]);
       }
-      
-      // Envoyer la requête au backend
-      const response = await fetch('http://localhost:3001/api/submit-transport-request', {
-        method: 'POST',
-        body: formDataToSubmit, // Ne pas définir Content-Type avec FormData, le navigateur le fait automatiquement
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        alert(`Demande soumise avec succès ! Référence: TR-${data.requestId}`);
-        // Rediriger l'utilisateur ou réinitialiser le formulaire
-        window.location.href = "../../LoginEmploye"; // Ou utilisez navigate avec React Router
-      } else {
-        alert(data.message || "Erreur lors de la soumission de la demande.");
-        // Réactiver le bouton si la soumission a échoué
-        setIsSubmitting(false);
-      }
-    } catch (error) {
-      console.error("Erreur de connexion au serveur:", error);
-      alert("Erreur de connexion au serveur. Veuillez réessayer.");
-      // Réactiver le bouton si la soumission a échoué
+    });
+    
+    // Ajouter un champ pour indiquer si c'est un itinéraire personnalisé
+    formDataToSubmit.append('isCustomItinerary', showCustomItineraire.toString());
+    
+    if (formData.image) {
+      formDataToSubmit.append('image', formData.image);
+    }
+    
+    const response = await fetch('http://localhost:3001/api/submit-transport-request', {
+      method: 'POST',
+      body: formDataToSubmit,
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert(`Demande soumise avec succès ! Référence: TR-${data.requestId}`);
+      window.location.href = "../../LoginEmploye";
+    } else {
+      alert(data.message || "Erreur lors de la soumission de la demande.");
       setIsSubmitting(false);
     }
-  };
+  } catch (error) {
+    console.error("Erreur de connexion au serveur:", error);
+    alert("Erreur de connexion au serveur. Veuillez réessayer.");
+    setIsSubmitting(false);
+  }
+};
 
   
   return (
@@ -710,20 +704,56 @@ const TransportRequest = () => {
                     </select>
                   </div>
                   
-                  <div className="form-group">
-                    <label>L'itinéraire exacte *</label>
-                    <select 
-                      name="itineraire" 
-                      value={formData.itineraire}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Sélectionnez un itinéraire</option>
-                      {itineraires.map((itineraire, index) => (
-                        <option key={index} value={itineraire}>{itineraire}</option>
-                      ))}
-                    </select>
-                  </div>
+                 <div className="form-group">
+  <label>L'itinéraire exact *</label>
+  {!showCustomItineraire ? (
+    <>
+      <select
+        name="itineraire"
+        value={formData.itineraire}
+        onChange={(e) => {
+          if (e.target.value === "custom") {
+            setShowCustomItineraire(true);
+            setFormData({...formData, itineraire: ""});
+          } else {
+            handleChange(e);
+          }
+        }}
+        required
+      >
+        <option value="">Sélectionnez un itinéraire</option>
+        {availableLines.map(line => (
+          <option key={line.id} value={line.id}>
+            Ligne {line.number} - {line.name} ({line.depart} → {line.arrivee})
+          </option>
+        ))}
+        <option value="custom">Mon itinéraire n'est pas dans la liste</option>
+      </select>
+    </>
+  ) : (
+    <div className="custom-itineraire-container">
+      <input
+        type="text"
+        name="itineraire"
+        placeholder="Décrivez votre itinéraire personnalisé"
+        value={formData.itineraire}
+        onChange={handleChange}
+        required
+        className="custom-itineraire-input"
+      />
+      <button
+        type="button"
+        className="btn-back-to-list"
+        onClick={() => {
+          setShowCustomItineraire(false);
+             setFormData({...formData, itineraire: ""});
+                 }}
+                >
+                Retour à la liste
+               </button>
+                </div>
+                   )}
+               </div>
                 </div>
               </div>
 
@@ -739,7 +769,7 @@ const TransportRequest = () => {
                       onChange={handleChange}
                       required
                     >
-                       <option value="">Sélectionnez un itinéraire</option>
+                      <option value="">Sélectionnez une Fonction </option>
                       {fonction.map((fonction, index) => (
                         <option key={index} value={fonction}>{fonction}</option>
                       ))}
@@ -807,12 +837,12 @@ const TransportRequest = () => {
             <div className="button-container">
               <button type="reset" className="btn-cancel"><a href="../../LoginEmploye">Annuler</a></button>
               <button 
-  type="submit" 
-  className="btn-submit" 
-  disabled={!validations.matriculeVerified || !validations.emailVerified || validations.hasExistingRequest || isSubmitting}
->
-  {isSubmitting ? "Traitement en cours..." : "Soumettre"}
-</button>
+              type="submit" 
+              className="btn-submit" 
+              disabled={!validations.matriculeVerified || !validations.emailVerified || validations.hasExistingRequest || isSubmitting}
+               >
+               {isSubmitting ? "Traitement en cours..." : "Soumettre"}
+             </button>
             </div>
           </form>
         </div>

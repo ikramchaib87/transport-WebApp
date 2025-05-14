@@ -10,13 +10,13 @@ const path = require('path');
 const fs = require('fs');
 
 // Configuration LDAP
-const LDAP_URL = 'ldap://172.20.10.2';
+const LDAP_URL = 'ldap://192.168.42.220';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'transport_app',
+  database: 'transport',
   password: process.env.DB_PASSWORD,
   port: 5432,
 });
@@ -284,7 +284,7 @@ app.post('/api/submit-transport-request', upload.single('image'), async (req, re
     
     // Validation des champs obligatoires
     const requiredFields = ['name', 'prenom', 'email', 'phone', 'adresse', 'commune', 'wilaya', 
-                           'itineraire', 'matricule', 'fonction', 'post'];
+'itineraire', 'matricule', 'fonction', 'post'];
     
     for (const field of requiredFields) {
       if (!req.body[field]) {
@@ -357,36 +357,40 @@ app.post('/api/submit-transport-request', upload.single('image'), async (req, re
 });
 
 // API pour récupérer toutes les demandes de transport (pour l'admin)
+// API pour récupérer toutes les demandes de transport (pour l'admin)
 app.get('/api/transport-requests', async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
     
-    // Construire la requête avec filtres optionnels
+    // Construire la requête avec jointure pour récupérer les détails de la ligne
     let query = `
-      SELECT * FROM transport_requests
+      SELECT tr.*, 
+             l.number as line_number, 
+             l.name as line_name, 
+             l.depart as line_depart, 
+             l.arrivee as line_arrivee
+      FROM transport_requests tr
+      LEFT JOIN lines l ON tr.itineraire = l.id::text
     `;
     
     const queryParams = [];
     let paramCounter = 1;
     
-    // Ajouter le filtre de statut si fourni
     if (status) {
-      query += ` WHERE statut = $${paramCounter++}`;
+      query += ` WHERE tr.statut = $${paramCounter++}`;
       queryParams.push(status);
     }
     
-    // Ajouter le tri et la pagination
-    query += ` ORDER BY date_soumission DESC LIMIT $${paramCounter++} OFFSET $${paramCounter++}`;
+    query += ` ORDER BY tr.date_soumission DESC LIMIT $${paramCounter++} OFFSET $${paramCounter++}`;
     queryParams.push(limit, offset);
     
-    // Exécuter la requête
     const result = await pool.query(query, queryParams);
     
-    // Compter le nombre total de demandes pour la pagination
+    // Compter le nombre total de demandes
     const countQuery = `
-      SELECT COUNT(*) FROM transport_requests
-      ${status ? 'WHERE statut = $1' : ''}
+      SELECT COUNT(*) FROM transport_requests tr
+      ${status ? 'WHERE tr.statut = $1' : ''}
     `;
     
     const countResult = await pool.query(countQuery, status ? [status] : []);
@@ -403,10 +407,10 @@ app.get('/api/transport-requests', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Erreur lors de la récupération des demandes:', error);
+    console.error('Erreur:', error);
     return res.status(500).json({ 
       success: false, 
-      message: 'Erreur lors de la récupération des demandes de transport' 
+      message: 'Erreur serveur' 
     });
   }
 });
@@ -416,7 +420,17 @@ app.get('/api/transport-requests/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const query = 'SELECT * FROM transport_requests WHERE id = $1';
+    const query = `
+      SELECT tr.*, 
+             l.number as line_number, 
+             l.name as line_name, 
+             l.depart as line_depart, 
+             l.arrivee as line_arrivee
+      FROM transport_requests tr
+      LEFT JOIN lines l ON tr.itineraire = l.id::text
+      WHERE tr.id = $1
+    `;
+    
     const result = await pool.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -432,14 +446,13 @@ app.get('/api/transport-requests/:id', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Erreur lors de la récupération de la demande:', error);
+    console.error('Erreur:', error);
     return res.status(500).json({ 
       success: false, 
-      message: 'Erreur lors de la récupération de la demande de transport' 
+      message: 'Erreur serveur' 
     });
   }
 });
-
 // API pour mettre à jour le statut d'une demande (admin)
 app.put('/api/transport-requests/:id/status', async (req, res) => {
   try {

@@ -420,3 +420,28 @@
   border-color: #d32f2f;
   background-color: #fff8f8;
 }
+/*-------------*/
+.custom-itineraire-container {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.custom-itineraire-input {
+  flex-grow: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.btn-back-to-list {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.btn-back-to-list:hover {
+  background: #e0e0e0;
+}

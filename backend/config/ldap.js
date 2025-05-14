@@ -1,6 +1,6 @@
 const ldap = require('ldapjs');
 
-const LDAP_URL = 'ldap://192.168.100.5';
+const LDAP_URL = 'ldap://192.168.42.220';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 const LDAP_GROUP_BASE = 'ou=Group,dc=contoso-lab,dc=com';
 

@@ -8,6 +8,7 @@ import search from "../../icons/search.png";
 import Affecter from "./Affecter";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { MapPin} from "lucide-react";
 import viewDetails from "../../icons/view.png";
 const ReservationTable = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,7 +19,78 @@ const ReservationTable = () => {
   const [error, setError] = useState(null);
   const [selectedAffectation, setSelectedAffectation] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  
+  //-------------------
+const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+const [busToAssign, setBusToAssign] = useState(null);
+const [availableLines, setAvailableLines] = useState([]);
+const [selectedLine, setSelectedLine] = useState("");
+const [assignmentMessage, setAssignmentMessage] = useState({ text: '', type: '' });
+const fetchAvailableLines = async () => {
+ 
+    try {
+      const response = await fetch('http://localhost:5000/api/lines');
+      const data = await response.json();
+      setAvailableLines(data);
+    } catch (error) {
+      console.error('Error fetching lines:', error);
+    }
+};
+const handleAssignToLine = (bus) => {
+  setBusToAssign(bus);
+  fetchAvailableLines();
+  setIsAssignModalOpen(true);
+};
+
+const handleConfirmAssignment = async () => {
+  try {
+    // Ajouter un indicateur de chargement si nécessaire
+    setAssignmentMessage({ text: 'Affectation en cours...', type: 'info' });
+    
+    const response = await fetch(
+      `http://localhost:5000/api/affectations/${busToAssign.id}/assign-line`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ line_id: selectedLine })
+      }
+    );
+
+    if (!response.ok) throw new Error('Échec de l\'affectation');
+
+    const updatedAffectation = await response.json();
+    
+    
+
+    
+    // Mettre à jour les réservations avec toutes les informations nécessaires
+    setReservations(reservations.map(aff => 
+      aff.id === updatedAffectation.id ? {
+        ...aff,
+        line_id: updatedAffectation.line_id,
+        line_number: updatedAffectation.line_number,
+        line_name: updatedAffectation.line_name
+      } : aff
+    ));
+    
+    setAssignmentMessage({ 
+      text: 'Affectation réussie !', 
+      type: 'success' 
+    });
+    
+    // Fermer le modal après 2 secondes
+    setTimeout(() => {
+      setIsAssignModalOpen(false);
+      setAssignmentMessage({ text: '', type: '' });
+    }, 2000);
+  } catch (err) {
+    console.error('Erreur d\'affectation:', err);
+    setAssignmentMessage({
+      text: err.message || 'Erreur lors de l\'affectation',
+      type: 'error'
+    });
+  }
+};
+//-----------------------------
   const fetchReservations = async () => {
     try {
       setLoading(true);
@@ -177,6 +249,7 @@ const ReservationTable = () => {
                   <th>Date de Mise en Charge</th>
                   <th>Chauffeur</th>
                   <th>Modèle de Bus</th>
+                  <th>Ligne</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -197,6 +270,11 @@ const ReservationTable = () => {
                       <td>{reservation.nomChauffeur || `${reservation.nom || ''} ${reservation.prenom || ''}`}</td>
                       <td>{`${reservation.marqueBus || reservation.marque || ''} ${reservation.modele || ''}`}</td>
                       <td>
+                       {reservation.line_number 
+                      ? `Ligne ${reservation.line_number} - ${reservation.line_name} (${reservation.depart} → ${reservation.arrivee})`
+                      : 'Non affecté'}
+                      </td>
+                      <td>
                       <button onClick={() => handleViewDetails(reservation)}>
                       <img src={viewDetails} alt="view" />
                        </button>
@@ -206,6 +284,12 @@ const ReservationTable = () => {
                         <button onClick={() => handleDeleteReservation(reservation.id)}>
                           <img src={Delete} alt="delete" />
                         </button>
+                         <button 
+                          className="assign-btn" 
+                            onClick={() => handleAssignToLine(reservation)}
+                                   >
+                           <MapPin size={16} />
+                          </button>
                       </td>
                     </tr>
                   ))
@@ -259,6 +343,55 @@ const ReservationTable = () => {
       >
         Fermer
       </button>
+
+    </div>
+  </>
+)}
+{isAssignModalOpen && busToAssign && (
+  <>
+    <div className="bus-modal-overlay" onClick={() => setIsAssignModalOpen(false)}></div>
+    <div className="bus-modal-content">
+      <h3>Affecter le bus à une ligne</h3>
+      <p>Bus: {busToAssign.marqueBus || busToAssign.marque} {busToAssign.modele} ({busToAssign.matriculeBus || busToAssign.matricule})</p>
+      
+      {assignmentMessage.text && (
+        <div className={`assignment-message ${assignmentMessage.type}`}>
+          {assignmentMessage.text}
+        </div>
+      )}
+      
+      <div className="form-group">
+        <select 
+          value={selectedLine} 
+          onChange={(e) => setSelectedLine(e.target.value)} 
+          className="line-select-dropdown"
+        >
+          <option value="">Choisir une ligne</option>
+          {availableLines.map(line => (
+            <option key={line.id} value={line.id}>
+              Ligne {line.number} - {line.name} ({line.depart} → {line.arrivee})
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="modal-actions">
+        <button 
+          onClick={() => {
+            setIsAssignModalOpen(false);
+            setAssignmentMessage({ text: '', type: '' });
+          }} 
+          className="cancel-btn"
+        >
+          Annuler
+        </button>
+        <button 
+          onClick={handleConfirmAssignment} 
+          disabled={!selectedLine} 
+          className="confirm-btn"
+        >
+          Confirmer l'affectation
+        </button>
+      </div>
     </div>
   </>
 )}

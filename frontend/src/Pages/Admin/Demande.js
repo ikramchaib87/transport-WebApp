@@ -244,7 +244,16 @@ const Demande = () => {
                         <td>TR-{demande.id}</td>
                         <td>{demande.nom} {demande.prenom}</td>
                         <td>{demande.matricule}</td>
-                        <td>{demande.itineraire}</td>
+                        <td>
+                        {demande.line_number ? (
+                        <>
+      Ligne {demande.line_number} - {demande.line_name} 
+      <br />({demande.line_depart} → {demande.line_arrivee})
+    </>
+  ) : (
+    demande.itineraire // Affiche le texte personnalisé si ce n'est pas une ligne prédéfinie
+  )}
+</td>
                         <td>{formatDate(demande.date_soumission)}</td>
                         <td>
                           <span className={getStatusBadgeClass(demande.statut)}>
@@ -372,11 +381,20 @@ const Demande = () => {
                     </div>
                   </div>
                   <div className="detail-row">
-                    <div className="detail-item full-width">
-                      <label>Itinéraire demandé</label>
-                      <span>{selectedDemande.itineraire}</span>
-                    </div>
-                  </div>
+  <div className="detail-item full-width">
+    <label>Itinéraire demandé</label>
+    <span>
+      {selectedDemande.line_number ? (
+        <>
+          Ligne {selectedDemande.line_number} - {selectedDemande.line_name} 
+          <br />(Départ: {selectedDemande.line_depart}, Arrivée: {selectedDemande.line_arrivee})
+        </>
+      ) : (
+        selectedDemande.itineraire
+      )}
+    </span>
+  </div>
+</div>
                 </div>
                 
                 {/* Déclarations */}
