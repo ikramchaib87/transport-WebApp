@@ -914,6 +914,15 @@
     border-top-color: #3b82f6;
     animation: spin 1s linear infinite;
   }
+
+  .ltr-stop-duration {
+  margin-left: auto;
+  font-size: 0.9em;
+  color: #666;
+  padding: 2px 8px;
+  background: #f0f0f0;
+  border-radius: 12px;
+}
   
   @keyframes spin {
     0% { transform: rotate(0deg); }

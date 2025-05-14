@@ -10,7 +10,7 @@ async function getCompleteLineById(id) {
   
   const line = lineResult.rows[0];
   const stopsResult = await pool.query(
-    'SELECT * FROM stops WHERE line_id = $1 ORDER BY position ASC',
+    'SELECT *, duree FROM stops WHERE line_id = $1 ORDER BY position ASC',
     [id]
   );
   
@@ -94,24 +94,24 @@ exports.createLine = async (req, res) => {
         const coordinates = stop.coordinates ? JSON.stringify(stop.coordinates) : null;
         
         await client.query(
-          `INSERT INTO stops (line_id, name, position, coordinates) 
-           VALUES ($1, $2, $3, $4)`,
-          [newLine.id, stop.name, i + 1, coordinates]
+          `INSERT INTO stops (line_id, name, position, coordinates, duree) 
+          VALUES ($1, $2, $3, $4, $5)`,
+          [newLine.id, stop.name, i + 1, coordinates, stop.duree || 0]
         );
       }
     }
     // Si aucun arrêt n'est fourni, créer au moins les arrêts de départ et d'arrivée
     else if (depart && arrivee) {
       await client.query(
-        `INSERT INTO stops (line_id, name, position) 
-         VALUES ($1, $2, $3)`,
-        [newLine.id, depart, 1]
+        `INSERT INTO stops (line_id, name, position, duree) 
+         VALUES ($1, $2, $3, $4)`,
+        [newLine.id, depart, 1, 0]
       );
       
       await client.query(
-        `INSERT INTO stops (line_id, name, position) 
-         VALUES ($1, $2, $3)`,
-        [newLine.id, arrivee, 2]
+        `INSERT INTO stops (line_id, name, position, duree) 
+         VALUES ($1, $2, $3, $4)`,
+        [newLine.id, arrivee, 2, 0]
       );
     }
     
@@ -175,24 +175,24 @@ exports.updateLine = async (req, res) => {
         const coordinates = stop.coordinates ? JSON.stringify(stop.coordinates) : null;
         
         await client.query(
-          `INSERT INTO stops (line_id, name, position, coordinates) 
-           VALUES ($1, $2, $3, $4)`,
-          [id, stop.name, i + 1, coordinates]
+          `INSERT INTO stops (line_id, name, position, coordinates, duree) 
+           VALUES ($1, $2, $3, $4, $5)`,
+          [id, stop.name, i + 1, coordinates, stop.duree || 0]
         );
       }
     }
     // Si aucun arrêt n'est fourni, créer au moins les arrêts de départ et d'arrivée
     else if (depart && arrivee) {
       await client.query(
-        `INSERT INTO stops (line_id, name, position) 
-         VALUES ($1, $2, $3)`,
-        [id, depart, 1]
+        `INSERT INTO stops (line_id, name, position, duree) 
+         VALUES ($1, $2, $3, $4)`,
+        [id, depart, 1, 0]
       );
       
       await client.query(
-        `INSERT INTO stops (line_id, name, position) 
-         VALUES ($1, $2, $3)`,
-        [id, arrivee, 2]
+        `INSERT INTO stops (line_id, name, position, duree) 
+         VALUES ($1, $2, $3, $4)`,
+        [id, arrivee, 2, 0]
       );
     }
     
@@ -261,44 +261,54 @@ exports.getLineStops = async (req, res) => {
 
 // POST - Add a new stop to a line
 exports.addStopToLine = async (req, res) => {
+  const client = await pool.connect();
+  
   try {
+    await client.query('BEGIN');
+    
     const { lineId } = req.params;
-    const { name, position, coordinates } = req.body;
+    const { name, position, coordinates, duree } = req.body;
     
     // Check if the line exists
-    const lineExists = await pool.query('SELECT id FROM lines WHERE id = $1', [lineId]);
+    const lineExists = await client.query('SELECT id FROM lines WHERE id = $1', [lineId]);
     
     if (lineExists.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Ligne non trouvée' });
     }
     
     // If position is not specified, add to the end
     let finalPosition = position;
     if (!finalPosition) {
-      const lastStopResult = await pool.query(
+      const lastStopResult = await client.query(
         'SELECT MAX(position) as max_pos FROM stops WHERE line_id = $1',
         [lineId]
       );
       finalPosition = (lastStopResult.rows[0].max_pos || 0) + 1;
     } else {
       // If a position is specified, shift the following stops
-      await pool.query(
+      await client.query(
         'UPDATE stops SET position = position + 1 WHERE line_id = $1 AND position >= $2',
         [lineId, finalPosition]
       );
     }
     
     const coordinatesJson = coordinates ? JSON.stringify(coordinates) : null;
+    const stopDuree = duree !== undefined ? duree : 0;
     
-    const result = await pool.query(
-      'INSERT INTO stops (line_id, name, position, coordinates) VALUES ($1, $2, $3, $4) RETURNING *',
-      [lineId, name, finalPosition, coordinatesJson]
+    const result = await client.query(
+      'INSERT INTO stops (line_id, name, position, coordinates, duree) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [lineId, name, finalPosition, coordinatesJson, stopDuree]
     );
     
+    await client.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error("Erreur lors de l'ajout d'un arrêt:", error);
     res.status(400).json({ message: "Erreur lors de l'ajout d'un arrêt", error: error.message });
+  } finally {
+    client.release();
   }
 };
 
@@ -310,7 +320,7 @@ exports.updateStop = async (req, res) => {
     await client.query('BEGIN');
     
     const { id } = req.params;
-    const { name, position, coordinates } = req.body;
+    const { name, position, coordinates, duree } = req.body;
     
     // Get the current stop
     const currentStopResult = await client.query(
@@ -344,11 +354,12 @@ exports.updateStop = async (req, res) => {
     }
     
     const coordinatesJson = coordinates ? JSON.stringify(coordinates) : currentStop.coordinates;
+    const stopDuree = duree !== undefined ? duree : currentStop.duree || 0;
     
     // Update the stop
     const result = await client.query(
-      'UPDATE stops SET name = $1, position = $2, coordinates = $3 WHERE id = $4 RETURNING *',
-      [name || currentStop.name, position || currentStop.position, coordinatesJson, id]
+      'UPDATE stops SET name = $1, position = $2, coordinates = $3, duree = $4 WHERE id = $5 RETURNING *',
+      [name || currentStop.name, position || currentStop.position, coordinatesJson, stopDuree, id]
     );
     
     await client.query('COMMIT');
