@@ -242,7 +242,7 @@ const TrajetAdmin = () => {
       };
   
       // Envoyer les données à l'API
-      const response = await fetch('http://localhost:5000/api/trajets', {
+      const response = await fetch('http://localhost:5000/api/trajet', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

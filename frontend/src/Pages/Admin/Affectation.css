@@ -179,3 +179,81 @@
 }
 
 /* Amélioration des styles pour tous les sélecteurs */
+/*--------------------------
+/* Styles pour le modal d'assignation */
+.bus-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.bus-modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  z-index: 1001;
+  width: 500px;
+  max-width: 90%;
+}
+
+.line-select-dropdown {
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-btn {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.assignment-message {
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+.assignment-message.success {
+  background-color: #dff0d8;
+  color: #3c763d;
+}
+
+.assignment-message.error {
+  background-color: #f2dede;
+  color: #a94442;
+}

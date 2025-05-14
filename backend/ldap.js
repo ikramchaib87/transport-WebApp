@@ -18,7 +18,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ====================================================
 
 // Configuration LDAP
-const LDAP_URL = 'ldap://192.168.100.220';
+const LDAP_URL = 'ldap://192.168.42.220';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 const LDAP_GROUP_BASE = 'ou=Group,dc=contoso-lab,dc=com';
 
@@ -1292,16 +1292,22 @@ app.get('/api/affectations', async (req, res) => {
         a.statut,
         a.raison_modification,
         a.date_prise_charge,
+        a.line_id,
         b.matricule AS matricule_bus,
         b.marque AS marque_bus,
         b.modele,
         b.nb_places AS places_disponibles,
         c.matricule AS matricule_chauffeur,
         c.nom,
-        c.prenom
+        c.prenom,
+        l.number AS line_number,
+        l.name AS line_name,
+        l.depart,
+        l.arrivee
       FROM affectations a
       JOIN bus b ON a.bus_id = b.id
       JOIN chauffeurs c ON a.chauffeur_id = c.ldap_id
+      LEFT JOIN lines l ON a.line_id = l.id
       ORDER BY a.id DESC
     `);
     
@@ -1317,7 +1323,12 @@ app.get('/api/affectations', async (req, res) => {
       nomChauffeur: `${row.nom} ${row.prenom}`,
       statut: row.statut,
       date_prise_charge: row.date_prise_charge,
-      raison_modification: row.raison_modification
+      raison_modification: row.raison_modification,
+      line_id: row.line_id,
+      line_number: row.line_number,
+      line_name: row.line_name,
+      depart: row.depart,
+      arrivee: row.arrivee
     }));
    
     res.json({ success: true, affectations });
@@ -1330,7 +1341,6 @@ app.get('/api/affectations', async (req, res) => {
     });
   }
 });
-
 // Créer une nouvelle affectation
 app.post('/api/affectations', async (req, res) => {
   const client = await pool.connect();
@@ -1679,6 +1689,44 @@ app.put('/api/affectations/:id', async (req, res) => {
       message: 'Erreur serveur lors de la modification de l\'affectation',
       error: err.message
     });
+  } finally {
+    client.release();
+  }
+});
+// Affecter une ligne à un bus
+app.put('/api/affectations/:id/assign-line', async (req, res) => {
+  const { line_id } = req.body;
+  const { id } = req.params;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(`
+      UPDATE affectations 
+      SET line_id = $1 
+      WHERE id = $2 
+      RETURNING *,
+        (SELECT number FROM lines WHERE id = $1) AS line_number,
+        (SELECT name FROM lines WHERE id = $1) AS line_name,
+        (SELECT depart FROM lines WHERE id = $1) AS depart,
+        (SELECT arrivee FROM lines WHERE id = $1) AS arrivee
+    `, [line_id, id]);
+
+    await client.query('COMMIT');
+    
+    res.json({
+      ...result.rows[0],
+      line_number: result.rows[0].line_number,
+      line_name: result.rows[0].line_name,
+      depart: result.rows[0].depart,
+      arrivee: result.rows[0].arrivee
+    });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
   } finally {
     client.release();
   }
@@ -2866,6 +2914,8 @@ app.get('/api/trajets', async (req, res) => {
     res.status(500).json({ success: false, error: 'Erreur serveur' });
   }
 });
+//-----------------------------------------------
+
 
 // Démarrer le serveur
 const PORT = process.env.PORT || 5000;
