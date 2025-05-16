@@ -20,8 +20,9 @@ const ChauffTable = () => {
         disponibilite: "Disponible",
         photo_url: ""
     });
+    const [photoErrors, setPhotoErrors] = useState({});
 
-    // Fonction pour récupérer les chauffeurs depuis l'API
+    // Function to fetch drivers from the API
     const fetchChauffeurs = async () => {
         try {
             setLoading(true);
@@ -29,10 +30,19 @@ const ChauffTable = () => {
             const data = await response.json();
             
             if (data.success) {
-                // Utiliser directement les chauffeurs du LDAP retournés par l'API
+                // Use drivers returned from API directly
                 setChauffeurs(data.chauffeurs);
                 setFilteredChauffeurs(data.chauffeurs);
                 console.log(`${data.chauffeurs.length} chauffeurs récupérés depuis LDAP`);
+                
+                // Debug photo URLs
+                data.chauffeurs.forEach(chauffeur => {
+                    if (chauffeur.photo_url) {
+                        console.log(`Chauffeur ${chauffeur.matricule} has photo URL: ${chauffeur.photo_url.substring(0, 30)}...`);
+                    } else {
+                        console.log(`Chauffeur ${chauffeur.matricule} has NO photo URL`);
+                    }
+                });
             } else {
                 console.error("Erreur de l'API:", data.message);
                 setChauffeurs([]);
@@ -47,12 +57,12 @@ const ChauffTable = () => {
         }
     };
 
-    // Chargement initial des données
+    // Initial data loading
     useEffect(() => {
         fetchChauffeurs();
     }, []);
 
-    // Fonction de recherche
+    // Search function
     const handleSearch = (e) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
@@ -72,7 +82,7 @@ const ChauffTable = () => {
         setFilteredChauffeurs(filtered);
     };
 
-    // Fonction pour styliser la disponibilité
+    // Style function for availability
     const getStatusClass = (disponibilite) => {
         if (!disponibilite) return "";
         
@@ -82,8 +92,11 @@ const ChauffTable = () => {
         return "";
     };
 
-    // Fonction pour afficher les détails d'un chauffeur
+    // Function to show driver details
     const handleViewDetails = (chauffeur) => {
+        console.log("Opening modal for chauffeur:", chauffeur);
+        console.log("Photo URL:", chauffeur.photo_url ? chauffeur.photo_url.substring(0, 30) + "..." : "None");
+        
         setSelectedChauffeur(chauffeur);
         setFormData({
             nom: chauffeur.nom || "",
@@ -96,7 +109,13 @@ const ChauffTable = () => {
         setShowModal(true);
     };
 
-    // Fonction pour fermer le modal
+    // Function to handle image error
+    const handleImageError = (chauffeurId) => {
+        console.error(`Error loading image for chauffeur ID: ${chauffeurId}`);
+        setPhotoErrors(prev => ({...prev, [chauffeurId]: true}));
+    };
+
+    // Function to close modal
     const handleCloseModal = () => {
         setShowModal(false);
         setSelectedChauffeur(null);
@@ -138,7 +157,7 @@ const ChauffTable = () => {
                     </thead>
                     <tbody>
                         {loading ? (
-                            // Afficher des lignes vides pendant le chargement
+                            // Show empty rows during loading
                             Array(10).fill(null).map((_, index) => (
                                 <tr key={index} className={index % 2 === 0 ? "gray-row" : ""}>
                                     <td>—</td>
@@ -151,14 +170,14 @@ const ChauffTable = () => {
                                 </tr>
                             ))
                         ) : filteredChauffeurs.length > 0 ? (
-                            // Afficher les données des chauffeurs
+                            // Show driver data
                             filteredChauffeurs.map((chauffeur, index) => (
                                 <tr key={chauffeur.ldap_id || index} className={index % 2 === 0 ? "gray-row" : ""}>
-                                    <td>{chauffeur.nom }</td>
-                                    <td>{chauffeur.prenom  }</td>
-                                    <td>{chauffeur.matricule  }</td>
-                                    <td>{chauffeur.tel }</td>
-                                    <td>{chauffeur.email }</td>
+                                    <td>{chauffeur.nom}</td>
+                                    <td>{chauffeur.prenom}</td>
+                                    <td>{chauffeur.matricule}</td>
+                                    <td>{chauffeur.tel}</td>
+                                    <td>{chauffeur.email}</td>
                                     <td className={getStatusClass(chauffeur.disponibilite)}>{chauffeur.disponibilite}</td>
                                     <td className="action-buttons">
                                         <img 
@@ -171,7 +190,7 @@ const ChauffTable = () => {
                                 </tr>
                             ))
                         ) : (
-                            // Message si aucun chauffeur trouvé
+                            // Message if no drivers found
                             <tr>
                                 <td colSpan="8" style={{textAlign: "center"}}>Aucun chauffeur trouvé</td>
                             </tr>
@@ -181,7 +200,7 @@ const ChauffTable = () => {
             </div>
         </div>
 
-        {/* Modal pour afficher les détails du chauffeur (en lecture seule) */}
+        {/* Modal for displaying driver details (read-only) */}
         {showModal && selectedChauffeur && (
             <div className="modal-overlay">
                 <div className="modal-content">
@@ -192,12 +211,25 @@ const ChauffTable = () => {
                     <div className="modal-body">
                         <div className="chauffeur-profile">
                             <div className="profile-photo-container">
-                                <img 
-                                    src={formData.photo_url || "/default-avatar.png"} 
-                                    alt="profil" 
-                                    className="profile-photo"
-                                    onError={(e) => {e.target.src = "/default-avatar.png"}}
-                                />
+                                {selectedChauffeur.photo_url && !photoErrors[selectedChauffeur.ldap_id] ? (
+                                    <img 
+                                        src={selectedChauffeur.photo_url} 
+                                        alt="profil" 
+                                        className="profile-photo"
+                                        onError={() => handleImageError(selectedChauffeur.ldap_id)}
+                                    />
+                                ) : (
+                                    <div className="photo-placeholder">
+                                        {selectedChauffeur.prenom && selectedChauffeur.nom ? (
+                                            <div className="initials">
+                                                {selectedChauffeur.prenom.charAt(0)}
+                                                {selectedChauffeur.nom.charAt(0)}
+                                            </div>
+                                        ) : (
+                                            <div className="no-photo">No Photo</div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="chauffeur-details">
