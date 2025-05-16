@@ -3,14 +3,12 @@ const pool = require('../config/db');
 
 exports.getDrivers = async (req, res) => {
   try {
-    // Connect to LDAP server
-    const client = ldap.createClient({
-      url: LDAP_URL
-    });
+    // 1. Connexion au serveur LDAP
+    const client = ldap.createClient({ url: LDAP_URL });
 
-    // Search for members of the chauffeur group
+    // 2. Recherche du groupe 'chauffeur' (copie exacte)
     const groupSearchOptions = {
-      filter: `(&(objectClass=posixGroup)(cn=chauffeur))`,
+      filter: '(&(objectClass=posixGroup)(cn=chauffeur))',
       scope: 'sub',
       attributes: ['memberUid']
     };
@@ -18,7 +16,10 @@ exports.getDrivers = async (req, res) => {
     client.search(LDAP_GROUP_BASE, groupSearchOptions, (groupErr, groupRes) => {
       if (groupErr) {
         console.error('Erreur de recherche du groupe LDAP:', groupErr);
-        return res.status(500).json({ success: false, message: 'Erreur lors de la recherche du groupe dans LDAP' });
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Erreur lors de la recherche du groupe dans LDAP' 
+        });
       }
 
       let memberUids = [];
@@ -45,17 +46,13 @@ exports.getDrivers = async (req, res) => {
           });
         }
 
-        // Create filter to search for all users who are members of the group
+        // Créer un filtre pour rechercher tous les utilisateurs qui sont membres du groupe
         const userFilter = `(|${memberUids.map(uid => `(uid=${uid})`).join('')})`;
         
-        // Add jpegPhoto to the attributes list to fetch photos
         const userSearchOptions = {
           filter: userFilter,
           scope: 'sub',
-          attributes: [
-            'uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 
-            'uidNumber', 'accountStatus', 'userAccountControl', 'jpegPhoto'
-          ]
+          attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'uidNumber', 'accountStatus', 'userAccountControl']
         };
 
         client.search(LDAP_SEARCH_BASE, userSearchOptions, async (searchErr, searchRes) => {
@@ -72,7 +69,7 @@ exports.getDrivers = async (req, res) => {
 
           searchRes.on('searchEntry', (entry) => {
             const chauffeur = {
-              // Default values to ensure all driver objects have the same structure
+              // Définir des valeurs par défaut pour s'assurer que tous les objets chauffeur ont la même structure
               ldap_id: null,
               matricule: null,
               nom: null,
@@ -81,8 +78,7 @@ exports.getDrivers = async (req, res) => {
               tel: '',
               statut: 'Actif',
               is_active: true,
-              disponibilite: 'Disponible',
-              photo_url: '' // Default empty photo URL
+              disponibilite: 'Disponible'  // Valeur par défaut
             };
             
             entry.attributes.forEach(attr => {
@@ -91,7 +87,7 @@ exports.getDrivers = async (req, res) => {
               switch(attr.type) {
                 case 'uid':
                   chauffeur.ldap_id = value;
-                  chauffeur.id = value; // Add ID for React
+                  chauffeur.id = value; // Ajouter un ID pour React
                   break;
                 case 'sn':
                   chauffeur.nom = value;
@@ -124,27 +120,6 @@ exports.getDrivers = async (req, res) => {
                     }
                   }
                   break;
-                case 'jpegPhoto':
-  if (value) {
-    try {
-      // Vérifier si c'est un buffer valide
-      const photoBuffer = Buffer.isBuffer(value) 
-        ? value 
-        : Buffer.from(value, 'binary');
-      
-      // Vérifier la taille du buffer
-      if (photoBuffer.length > 0) {
-        const base64Photo = photoBuffer.toString('base64');
-        chauffeur.photo_url = `data:image/jpeg;base64,${base64Photo}`;
-      } else {
-        chauffeur.photo_url = '';
-      }
-    } catch (error) {
-      console.error('Erreur conversion photo:', error);
-      chauffeur.photo_url = '';
-    }
-  }
-  break;
               }
             });
 
@@ -164,12 +139,12 @@ exports.getDrivers = async (req, res) => {
             client.unbind();
             
             try {
-              // Strict filtering of drivers with all required fields
+              // Filtrage strict des chauffeurs avec tous les champs requis
               const validChauffeurs = [];
               const invalidChauffeurs = [];
               
               for (const chauffeur of ldapChauffeurs) {
-                // Strict check to ensure required fields are not null or empty strings
+                // Vérification stricte pour s'assurer que les champs obligatoires ne sont pas null ou des chaînes vides
                 if (chauffeur.ldap_id && 
                     chauffeur.matricule && 
                     chauffeur.nom && 
@@ -193,7 +168,7 @@ exports.getDrivers = async (req, res) => {
               console.log(`Nombre de chauffeurs valides : ${validChauffeurs.length}`);
               console.log(`Nombre de chauffeurs invalides (ignorés) : ${invalidChauffeurs.length}`);
               
-              // Detailed logging of invalid drivers
+              // Logging détaillé des chauffeurs invalides
               if (invalidChauffeurs.length > 0) {
                 console.warn('Chauffeurs ignorés car ils n\'ont pas tous les champs requis:');
                 invalidChauffeurs.forEach((c, index) => {
@@ -201,35 +176,27 @@ exports.getDrivers = async (req, res) => {
                 });
               }
               
-              // Get availability information from the database
-              const dbChauffeurs = await pool.query('SELECT ldap_id, disponibilite, photo_url FROM chauffeurs');
-              const chauffeurInfoMap = {};
+              // Récupérer les informations de disponibilité depuis la base de données
+              const dbChauffeurs = await pool.query('SELECT ldap_id, disponibilite FROM chauffeurs');
+              const disponibiliteMap = {};
               
-              // Create a map of availabilities and stored photo URLs
+              // Créer un map des disponibilités
               dbChauffeurs.rows.forEach(chauffeur => {
-                chauffeurInfoMap[chauffeur.ldap_id] = {
-                  disponibilite: chauffeur.disponibilite,
-                  photo_url: chauffeur.photo_url
-                };
+                disponibiliteMap[chauffeur.ldap_id] = chauffeur.disponibilite;
               });
               
-              // Update drivers with DB values
+              // Mettre à jour les disponibilités des chauffeurs LDAP avec les valeurs de la BD
               validChauffeurs.forEach(chauffeur => {
-                const dbInfo = chauffeurInfoMap[chauffeur.ldap_id];
-                if (dbInfo) {
-                  // Prefer LDAP photo but fall back to DB photo if LDAP has none
-                  if (!chauffeur.photo_url && dbInfo.photo_url) {
-                    chauffeur.photo_url = dbInfo.photo_url;
-                  }
-                  chauffeur.disponibilite = dbInfo.disponibilite;
+                if (disponibiliteMap[chauffeur.ldap_id]) {
+                  chauffeur.disponibilite = disponibiliteMap[chauffeur.ldap_id];
                 }
-                // Otherwise, keep default 'Disponible' value
+                // Sinon, on garde la valeur par défaut 'Disponible'
               });
               
-              // Synchronize database in the background without waiting to respond to user
+              // Synchroniser la base de données en arrière-plan, sans attendre la fin pour répondre à l'utilisateur
               validChauffeurs.forEach(async (chauffeur) => {
                 try {
-                  // Double check before insertion
+                  // Double vérification avant l'insertion
                   if (!chauffeur.matricule) {
                     console.error(`ERREUR CRITIQUE: Tentative d'insertion d'un chauffeur sans matricule après filtrage: ${chauffeur.ldap_id}`);
                     return;
@@ -237,8 +204,8 @@ exports.getDrivers = async (req, res) => {
                   
                   await pool.query(
                     `INSERT INTO chauffeurs 
-                    (ldap_id, matricule, nom, prenom, email, tel, statut, disponibilite, is_active, photo_url) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+                    (ldap_id, matricule, nom, prenom, email, tel, statut, disponibilite, is_active) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
                     ON CONFLICT (ldap_id) 
                     DO UPDATE SET 
                       matricule = EXCLUDED.matricule,
@@ -248,10 +215,6 @@ exports.getDrivers = async (req, res) => {
                       tel = EXCLUDED.tel,
                       statut = EXCLUDED.statut,
                       is_active = EXCLUDED.is_active,
-                      photo_url = CASE 
-                      WHEN EXCLUDED.photo_url != '' THEN EXCLUDED.photo_url 
-                      ELSE chauffeurs.photo_url
-                      END,
                       date_modification = CURRENT_TIMESTAMP
                     `,
                     [
@@ -263,8 +226,7 @@ exports.getDrivers = async (req, res) => {
                       chauffeur.tel,
                       chauffeur.statut,
                       chauffeur.disponibilite,
-                      chauffeur.is_active,
-                      chauffeur.photo_url
+                      chauffeur.is_active
                     ]
                   );
                   console.log(`Insertion/mise à jour réussie pour le chauffeur ${chauffeur.ldap_id} (Matricule: ${chauffeur.matricule})`);
@@ -274,7 +236,7 @@ exports.getDrivers = async (req, res) => {
                 }
               });
               
-              // Return LDAP drivers directly (with DB availabilities if they exist)
+              // Renvoyer directement les chauffeurs du LDAP (avec disponibilités de la BD si elles existent)
               return res.json({
                 success: true,
                 chauffeurs: validChauffeurs,

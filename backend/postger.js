@@ -457,82 +457,24 @@ app.get('/api/transport-requests/:id', async (req, res) => {
 app.put('/api/transport-requests/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { statut, vehicule_id, vehicule_type, vehicule_matricule } = req.body;
+    const { statut } = req.body;
     
-    // Validation du statut
     if (!statut || !['En attente', 'Approuvée', 'Rejetée'].includes(statut)) {
       return res.status(400).json({
         success: false,
         message: 'Statut invalide. Valeurs acceptées: En attente, Approuvée, Rejetée'
       });
     }
-
-    // Vérification supplémentaire pour les approbations
-    if (statut === 'Approuvée') {
-      // Vérifier que les infos véhicule sont fournies
-      if (!vehicule_id || !vehicule_type || !vehicule_matricule) {
-        return res.status(400).json({
-          success: false,
-          message: 'Les informations du véhicule sont requises pour approuver une demande'
-        });
-      }
-
-      // Vérifier la disponibilité des places
-      const verificationQuery = `
-        SELECT 
-          CASE 
-            WHEN $2 = 'interne' THEN 
-              (SELECT nb_places FROM bus WHERE id = $1) - 
-              (SELECT COUNT(*) FROM transport_requests 
-               WHERE vehicule_id = $1 AND vehicule_type = $2 AND statut = 'Approuvée')
-            WHEN $2 = 'externe' THEN 
-              (SELECT nb_places FROM external_buses WHERE id = $1) - 
-              (SELECT COUNT(*) FROM transport_requests 
-               WHERE vehicule_id = $1 AND vehicule_type = $2 AND statut = 'Approuvée')
-          END as places_restantes
-      `;
-      
-      const verificationResult = await pool.query(verificationQuery, [vehicule_id, vehicule_type]);
-      
-      if (verificationResult.rows[0].places_restantes <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Plus de places disponibles dans ce véhicule'
-        });
-      }
-    }
-
-    // Construction de la requête de mise à jour
-    let query = `
+    
+    // Mettre à jour le statut et la date de décision
+    const query = `
       UPDATE transport_requests 
-      SET statut = $1, 
-          date_decision = NOW(), 
-          is_new = false,
-          vehicule_id = $2,
-          vehicule_type = $3,
-          vehicule_matricule = $4
-      WHERE id = $5
+      SET statut = $1, date_decision = NOW(), is_new = false 
+      WHERE id = $2
       RETURNING *
     `;
-    let params = [statut, vehicule_id, vehicule_type, vehicule_matricule, id];
-
-    // Si ce n'est pas une approbation, ne pas mettre à jour les infos véhicule
-    if (statut !== 'Approuvée') {
-      query = `
-        UPDATE transport_requests 
-        SET statut = $1, 
-            date_decision = NOW(), 
-            is_new = false,
-            vehicule_id = NULL,
-            vehicule_type = NULL,
-            vehicule_matricule = NULL
-        WHERE id = $2
-        RETURNING *
-      `;
-      params = [statut, id];
-    }
-
-    const result = await pool.query(query, params);
+    
+    const result = await pool.query(query, [statut, id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -543,7 +485,7 @@ app.put('/api/transport-requests/:id/status', async (req, res) => {
     
     const updatedRequest = result.rows[0];
     
-    // Envoyer un email de notification
+    // Envoyer un email de notification à l'utilisateur
     const notificationMailOptions = {
       from: '"Sonatrach Transport" <no-reply@sonatrach.dz>',
       to: updatedRequest.email,
@@ -554,28 +496,18 @@ app.put('/api/transport-requests/:id/status', async (req, res) => {
           <p>Bonjour ${updatedRequest.prenom} ${updatedRequest.nom},</p>
           <p>Le statut de votre demande de transport (référence: TR-${updatedRequest.id}) a été mis à jour:</p>
           <p>Nouveau statut: <strong>${statut}</strong></p>
-          ${statut === 'Approuvée' ? `
-            <p>Détails du véhicule attribué:</p>
-            <ul>
-              <li>Type: ${vehicule_type === 'interne' ? 'Bus interne' : 'Bus externe'}</li>
-              <li>Matricule: ${vehicule_matricule}</li>
-            </ul>
-            <p>Un responsable du service transport vous contactera prochainement pour les détails pratiques.</p>
-          ` : ''}
-          ${statut === 'Rejetée' ? `
-            <p>Votre demande a été rejetée. Pour plus d'informations, veuillez contacter le service transport.</p>
-          ` : ''}
+          ${statut === 'Approuvée' ? 
+            `<p>Votre demande a été approuvée. Un responsable du service transport vous contactera prochainement.</p>` : 
+            statut === 'Rejetée' ? 
+            `<p>Votre demande a été rejetée. Pour plus d'informations, veuillez contacter le service transport.</p>` : 
+            ''}
           <p>Cordialement,<br>L'équipe Transport Sonatrach</p>
         </div>
       `
     };
     
-    // Envoyer l'email (enveloppé dans un try-catch pour ne pas bloquer la réponse)
-    try {
-      await transporter.sendMail(notificationMailOptions);
-    } catch (emailError) {
-      console.error('Erreur lors de l\'envoi de l\'email:', emailError);
-    }
+    // Envoyer l'email de notification
+    await transporter.sendMail(notificationMailOptions);
     
     return res.json({
       success: true,
@@ -837,138 +769,7 @@ app.post('/api/test-connection', (req, res) => {
   });
 });
 //------------------------------------------------
-app.get('/api/transport-requests/:id/verify-line', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // 1. Récupérer la demande
-    const requestQuery = 'SELECT * FROM transport_requests WHERE id = $1';
-    const requestResult = await pool.query(requestQuery, [id]);
-    
-    if (requestResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Demande non trouvée'
-      });
-    }
-    
-    const demande = requestResult.rows[0];
-    let lineExists = false;
-    let placesDisponibles = false;
-    let vehiculeDisponible = null;
-    let remarque = demande.remarque || '';
-    let typeTransport = 'externe';
 
-    // 2. Vérifier si c'est une ligne prédéfinie
-    if (demande.itineraire && !isNaN(demande.itineraire)) {
-      const lineId = parseInt(demande.itineraire);
-      
-      // Vérifier l'existence de la ligne
-      const lineQuery = 'SELECT id, number, name FROM lines WHERE id = $1';
-      const lineResult = await pool.query(lineQuery, [lineId]);
-      lineExists = lineResult.rows.length > 0;
-      
-      if (!lineExists) {
-        remarque = 'Ligne prédéfinie non trouvée dans le système';
-      } else {
-        const ligne = lineResult.rows[0];
-        
-        // 3. Vérifier d'abord les bus internes
-        const busesInternesQuery = `
-          SELECT 
-            b.id, 
-            b.matricule, 
-            b.nb_places,
-            (SELECT COUNT(*) 
-             FROM transport_requests tr
-             WHERE tr.itineraire::integer = $1
-             AND tr.vehicule_type = 'interne'
-             AND tr.vehicule_id = b.id
-             AND tr.statut = 'Approuvée') as places_occupees
-          FROM affectations a
-          JOIN bus b ON a.bus_id = b.id
-          WHERE a.line_id = $1 AND a.statut = 'actif'
-          ORDER BY a.date_prise_charge ASC`;
-        
-        const busesInternesResult = await pool.query(busesInternesQuery, [lineId]);
-        
-        // 4. Si aucun bus interne, vérifier les bus externes
-        const busesExternesQuery = `
-          SELECT 
-            eb.id, 
-            eb.matricule, 
-            eb.nb_places,
-            (SELECT COUNT(*) 
-             FROM transport_requests tr
-             WHERE tr.itineraire::integer = $1
-             AND tr.vehicule_type = 'externe'
-             AND tr.vehicule_id = eb.id
-             AND tr.statut = 'Approuvée') as places_occupees
-          FROM bus_line_assignments bla
-          JOIN external_buses eb ON bla.bus_id = eb.id
-          WHERE bla.line_id = $1 AND bla.is_active = true
-          ORDER BY bla.assigned_at ASC`;
-        
-        const busesResult = busesInternesResult.rows.length > 0 
-          ? busesInternesResult 
-          : await pool.query(busesExternesQuery, [lineId]);
-        
-        if (busesResult.rows.length === 0) {
-          remarque = `Aucun véhicule actif affecté à la ligne ${ligne.number} - ${ligne.name}`;
-        } else {
-          typeTransport = busesInternesResult.rows.length > 0 ? 'interne' : 'externe';
-          
-          // 5. Trouver le premier véhicule avec places disponibles
-          for (const bus of busesResult.rows) {
-            const placesOccupees = parseInt(bus.places_occupees || 0);
-            const placesRestantes = bus.nb_places - placesOccupees;
-            
-            if (placesRestantes > 0) {
-              placesDisponibles = true;
-              vehiculeDisponible = {
-                id: bus.id,
-                matricule: bus.matricule,
-                placesRestantes: placesRestantes,
-                type: typeTransport
-              };
-              remarque = `${typeTransport === 'interne' ? 'Bus interne' : 'Bus externe'} ${bus.matricule} disponible (${placesRestantes} places) pour la ligne ${ligne.number}`;
-              break;
-            }
-          }
-          
-          if (!placesDisponibles) {
-            remarque = `Tous les véhicules de la ligne ${ligne.number} sont complets`;
-          }
-        }
-      }
-    } else {
-      remarque = 'Itinéraire personnalisé - vérification manuelle requise';
-    }
-
-    // Mettre à jour la remarque dans la base
-    await pool.query(
-      'UPDATE transport_requests SET remarque = $1 WHERE id = $2',
-      [remarque, id]
-    );
-
-    return res.json({
-      success: true,
-      lineExists,
-      placesDisponibles,
-      vehiculeDisponible,
-      remarque,
-      typeTransport
-    });
-    
-  } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ 
-      success: false,
-      message: 'Erreur technique lors de la vérification'
-    });
-  }
-});
-//----------------------------------------------
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
