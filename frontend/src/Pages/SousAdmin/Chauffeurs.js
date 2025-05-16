@@ -110,7 +110,7 @@ const ChauffTable = () => {
             <div className="ad-container">
                 <h2 className="title"> <span className="underline">Chauffeurs</span> </h2>
                 <br />
-                <p className="total">nombre total : <span className="count">{chauffeurs.length}</span></p>
+                <p className="total">nombre total : <span className="count">{loading ? "..." : chauffeurs.length}</span></p>
                 
                 <div className="search-bar">
                     <input 
@@ -118,8 +118,9 @@ const ChauffTable = () => {
                         placeholder="Search" 
                         value={searchTerm}
                         onChange={handleSearch}
+                        disabled={loading}
                     />
-                    <button>
+                    <button disabled={loading}>
                         <img src={search} alt="Rechercher" />
                     </button>
                 </div>
@@ -138,27 +139,23 @@ const ChauffTable = () => {
                     </thead>
                     <tbody>
                         {loading ? (
-                            // Afficher des lignes vides pendant le chargement
-                            Array(10).fill(null).map((_, index) => (
-                                <tr key={index} className={index % 2 === 0 ? "gray-row" : ""}>
-                                    <td>—</td>
-                                    <td>—</td>
-                                    <td>—</td>
-                                    <td>—</td>
-                                    <td>—</td>
-                                    <td>—</td>
-                                    <td>—</td>
-                                </tr>
-                            ))
+                            <tr>
+                                <td colSpan="7" className="loading-cell">
+                                    <div className="loading-container">
+                                        <div className="loading-spinner"></div>
+                                        <p className="loading-text">Chargement des données...</p>
+                                    </div>
+                                </td>
+                            </tr>
                         ) : filteredChauffeurs.length > 0 ? (
                             // Afficher les données des chauffeurs
                             filteredChauffeurs.map((chauffeur, index) => (
                                 <tr key={chauffeur.ldap_id || index} className={index % 2 === 0 ? "gray-row" : ""}>
-                                    <td>{chauffeur.nom }</td>
-                                    <td>{chauffeur.prenom  }</td>
-                                    <td>{chauffeur.matricule  }</td>
-                                    <td>{chauffeur.tel }</td>
-                                    <td>{chauffeur.email }</td>
+                                    <td>{chauffeur.nom}</td>
+                                    <td>{chauffeur.prenom}</td>
+                                    <td>{chauffeur.matricule}</td>
+                                    <td>{chauffeur.tel}</td>
+                                    <td>{chauffeur.email}</td>
                                     <td className={getStatusClass(chauffeur.disponibilite)}>{chauffeur.disponibilite}</td>
                                     <td className="action-buttons">
                                         <img 
@@ -173,7 +170,7 @@ const ChauffTable = () => {
                         ) : (
                             // Message si aucun chauffeur trouvé
                             <tr>
-                                <td colSpan="8" style={{textAlign: "center"}}>Aucun chauffeur trouvé</td>
+                                <td colSpan="7" className="no-results">Aucun chauffeur trouvé</td>
                             </tr>
                         )}
                     </tbody>

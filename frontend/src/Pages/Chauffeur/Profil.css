@@ -1,6 +1,6 @@
 .chauffeur{
     display: flex;
-    background-color: #d9d9d9;
+    background-color: #ffffff;
     min-height: calc(100vh - 60px);
   }
   
@@ -9,7 +9,6 @@
     background-color: #ffffff;
     margin:auto;
     padding: 2rem;
-    border-radius: 8px;
     width: 85%;
     margin: 20px;
     height: 100%;
@@ -81,7 +80,7 @@
   .statu-badge {
     display: inline-block;
     padding: 0.3rem 0.8rem;
-    background-color: #ebf5ff;
+    background-color: #ffffff;
     color: #2b6cb0;
     border-radius: 4px;
     font-size: 0.9rem;

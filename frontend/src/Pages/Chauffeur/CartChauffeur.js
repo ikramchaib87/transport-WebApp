@@ -166,7 +166,7 @@ useEffect(() => {
                       {driverData?.photo_chauffeur_url ? (
                         <img 
                           src={`http://localhost:5000${driverData.photo_chauffeur_url}`}
-                          alt="Photo du chauffeur"
+                          alt=""
                           className="emp-driver-photo"
                           crossOrigin="anonymous"
                           onError={(e) => {
@@ -211,3 +211,4 @@ useEffect(() => {
 };
 
 export default CartChauffeur;
+//for bouchra 
