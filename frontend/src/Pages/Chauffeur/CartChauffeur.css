@@ -1,6 +1,6 @@
 .add {
   display: flex;
- flex: 1;
+  flex: 1;
 }
 
 .cart-container {
@@ -10,163 +10,246 @@
   width: 85%;
   margin: auto;
   margin-top: 35px;
-  height: 700px;
- 
+  height: auto;
+  min-height: 500px;
 }
 
+.emp-carte-title {
+  position: relative;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 10px;
+}
 
+.emp-carte-title h2 {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
 
-  
-  .emp-carte-title {
-    position: relative;
-    margin-bottom: 30px;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 10px;
-  }
-  
-  .emp-carte-title h2 {
-    font-size: 1.5rem;
-    margin-bottom: 5px;
-  }
-  
- .emp-red-dot {
-    width: 6px;
-    height: 6px;
-    background-color: #ff4500;
-    border-radius: 50%;
-    position: absolute;
-    bottom: -3px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  .emp-carte-container {
-    display: flex;
-    justify-content: center;
-    margin: 30px 0;
+.emp-red-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #ff4500;
+  border-radius: 50%;
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.emp-carte-container {
+  display: flex;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+/* Réduire la taille du conteneur de la carte */
+.emp-carte-transport {
+  width: 100%;
+  max-width: 500px;
+  border: 1px solid #ff6f00;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.emp-carte-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #ff6f00;
+}
+
+.emp-logo-bus img {
+  height: 35px;
+}
+
+.emp-carte-title-header {
+  color: #000;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.emp-carte-body {
+  display: flex;
+  padding: 15px;
+}
+
+.emp-carte-info {
+  flex: 2;
+  padding-right: 15px;
+}
+
+/* Réduire la taille de la photo */
+.emp-carte-photo {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 90px;
+  margin-left: 10px;
+}
+
+.emp-photo-placeholder {
+  width: 80px;
+  height: 100px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  text-align: center;
+  color: #999;
+  border-radius: 4px;
+}
+
+.emp-info-field {
+  margin-bottom: 10px;
+}
+
+/* Mettre les labels en gras */
+.emp-info-field label {
+  display: block;
+  margin-bottom: 3px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.emp-field-value {
+  font-weight: 500;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 3px;
+  margin-top: 2px;
+  width: 100%;
+  min-height: 18px;
+  font-size: 0.9rem;
+}
+
+.emp-info-section {
+  margin: 25px 0;
+}
+
+.emp-info-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.emp-info-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #ff6f00;
+  color: white;
+  font-size: 14px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.emp-download-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.emp-download-button {
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+  border: 1px solid #ff6f00;
+  border-radius: 4px;
+  padding: 8px 15px;
+  color: #ff6f00;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.emp-download-icon {
+  margin-left: 10px;
+  transition: all 0.3s ease;
+}
+
+.emp-download-button:hover {
+  background-color: #ff6f00;
+  color: white;
+}
+
+.emp-download-button:hover .emp-download-icon {
+  color: white;
+}
+
+.emp-driver-photo {
+  width: 80px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* Nouveau style pour le message d'erreur intégré */
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 40px auto;
+  padding: 25px;
+  background-color: white;
+  border: none;
+  max-width: 90%;
+  text-align: center;
+}
+
+.error-message p {
+  color: #df0c0c;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.retry-button {
+  background-color: transparent;
+  border: 1px solid #ff6f00;
+  border-radius: 4px;
+  padding: 8px 15px;
+  color: #ff6f00;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background-color: #ff6f00;
+  color: white;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .cart-container {
+    margin-left: 70px;
+    padding: 20px;
   }
   
   .emp-carte-transport {
-    width: 100%;
-    max-width: 600px;
-    border: 1px solid #ff6f00;
-    border-radius: 8px;
-    overflow: hidden;
+    max-width: 90%;
   }
-  
-  .emp-carte-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #ff6f00;
-  }
-  
-  .emp-logo-bus img {
-    height: 40px;
-  }
-  
-  .emp-carte-title-header {
-    color: #000;
-    font-weight: bold;
-  }
-  
-  .emp-carte-body {
-    display: flex;
-    padding: 15px;
-  }
-  
-  .emp-carte-info {
-    flex: 3;
-  }
-  
-  .emp-carte-photo {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .emp-photo-placeholder {
-    width: 100px;
-    height: 125px;
-    border: 1px solid #ccc;
-    background-color: #f0f0f0;
-  }
-  
-  .emp-info-field {
-    margin-bottom: 15px;
-  }
-  
-  .emp-info-field label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-  }
-  
-  .emp-field-underline {
-    height: 1px;
-    background-color: #ccc;
-    margin-top: 5px;
-  }
-  
-  .emp-info-section {
-    margin: 30px 0;
-  }
-  
-  .emp-info-item {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 10px;
-  }
-  
-  .emp-info-icon {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: #ff6f00;
-    color: white;
-    font-size: 14px;
-    margin-right: 10px;
-    flex-shrink: 0;
-  }
-  
-  .emp-download-section {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-  }
-  
-  .emp-download-button {
-    display: flex;
-    align-items: center;
-    background-color: transparent;
-    border: none;
-    color: #000;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  
-  .emp-download-icon {
-    width: 24px;
-    height: 24px;
-    border: 1px solid #ff6f00;
-    border-radius: 50%;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    color: #ff6f00;
-    margin-left: 10px;
-  }
-  
-  @media (max-width: 768px) {
-    
-    .cart-container{
-     
-      margin-left: 70px;
-      
-    }
-  }
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -4,5 +4,7 @@ const tripController = require('../controllers/tripController');
 
 router.post('/trajets', tripController.posttrajets);
 router.get('/trajets', tripController.gettrajets);
+router.put('/trajets/:id', tripController.updatetrajets);
+router.delete('/trajets/:id', tripController.deletetrajets);
 
 module.exports = router;

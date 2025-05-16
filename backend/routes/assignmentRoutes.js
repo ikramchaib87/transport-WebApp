@@ -12,4 +12,7 @@ router.put('/:id', assignmentController.updateAssignment);
 router.delete('/:id', assignmentController.deleteAssignment);
 // POST /api/affectations/assign-line
 router.put('/:id/assign-line',assignmentController.putassignline)
+// Route pour récupérer par ligne
+router.get('/by-line/:lineId', assignmentController.getAffectationByLine);
+
 module.exports = router;

@@ -503,3 +503,85 @@ exports.deleteAssignment = async (req, res) => {
     });
   }
 };
+
+exports.getAffectationByLine = async (req, res) => {
+  const { lineId } = req.params;
+
+  if (!lineId || isNaN(lineId)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'ID de ligne invalide' 
+    });
+  }
+
+  try {
+    // Log the line ID we're querying for
+    console.log(`Searching for affectation for line ID: ${lineId}`);
+    
+    const query = `
+      SELECT
+        a.*,
+        b.matricule,
+        b.marque,
+        b.modele,
+        b.nb_places,
+        c.nom,
+        c.prenom,
+        c.tel
+      FROM affectations a
+      JOIN bus b ON a.bus_id = b.id
+      JOIN chauffeurs c ON a.chauffeur_id = c.ldap_id
+      WHERE a.line_id = $1
+      ORDER BY a.date_prise_charge DESC
+      LIMIT 1
+    `;
+
+    const result = await pool.query(query, [lineId]);
+
+    if (result.rows.length === 0) {
+      console.log(`No affectation found for line ID: ${lineId}`);
+      return res.status(200).json({ 
+        success: true, 
+        affectation: null 
+      });
+    }
+
+    const row = result.rows[0];
+    
+    // Debug: Log what we got from the database
+    console.log("Database returned:", {
+      marque: row.marque,
+      modele: row.modele,
+      nom: row.nom,
+      prenom: row.prenom,
+      tel: row.tel,
+      nb_places: row.nb_places
+    });
+    
+    // Create the response with all fields explicitly shown
+    const responseData = {
+      success: true,
+      affectation: {
+        nom: row.nom,
+        prenom: row.prenom,
+        marqueBus: row.marque,
+        modele: row.modele,
+        telephone: row.tel || '',  // Make sure this is not null/undefined
+        places_disponibles: row.nb_places ? row.nb_places.toString() : ''  // Convert to string if needed
+      }
+    };
+    
+    // Debug: Log what we're sending back
+    console.log("Sending to frontend:", responseData);
+    
+    res.json(responseData);
+
+  } catch (error) {
+    console.error('Erreur SQL:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur de base de données',
+      detail: error.message
+    });
+  }
+};

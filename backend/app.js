@@ -18,15 +18,30 @@ const uploadDir = path.join(__dirname, 'uploads');
 const driversDir = path.join(uploadDir, 'drivers');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 if (!fs.existsSync(driversDir)) fs.mkdirSync(driversDir, { recursive: true });
+const chauffeurRoutes = require('./routes/chauffeurRoutes');
 
 
 const app = express();
 
-app.use('/uploads', express.static(uploadDir));
-// Middleware
-app.use(cors());
+// Configure CORS globally for all routes
+app.use(cors({
+  origin: 'http://localhost:3000', // Your React app's origin
+  credentials: true,
+  exposedHeaders: ['Content-Length', 'Content-Type']
+}));
+
 app.use(bodyParser.json());
-// Routes
+
+// Static files middleware with proper CORS headers
+// Make this middleware come BEFORE the routes
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
+
+// API Routes
 app.use('/api', authRoutes);
 app.use('/api/employes', employeeRoutes);
 app.use('/api/chauffeurs', driverRoutes);
@@ -38,5 +53,6 @@ app.use('/api/external-buses', externalBusRoutes);
 app.use('/api/lines', lineRoutes);
 app.use('/api', aasignmentLineRoutes);
 app.use('/api', tripRoutes); 
+app.use('/api', chauffeurRoutes);
 
 module.exports = app;

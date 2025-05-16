@@ -435,6 +435,7 @@ function LinesListView({ lines, searchTerm, setSearchTerm, onSelectLine, onAddNe
 }
 
 // Vue détaillée d'une ligne avec la carte
+// Modification de la fonction LineDetail pour corriger l'affichage des durées
 function LineDetail({ line, onEdit, onBack, onDelete }) {
   const [mapWaypoints, setMapWaypoints] = useState([]);
 
@@ -469,6 +470,16 @@ function LineDetail({ line, onEdit, onBack, onDelete }) {
 
     loadStopCoordinates();
   }, [line]);
+
+  // Calculer les durées entre les arrêts
+  const calculateSegmentDurations = () => {
+    if (!line.stops || line.stops.length < 2) return [];
+    
+    // Retourne directement les durées cumulatives stockées
+    return line.stops.map(stop => stop.duree || 0);
+  };
+
+  const segmentDurations = calculateSegmentDurations();
 
   return (
     <div className="ltr-detail-container">
@@ -580,6 +591,10 @@ function LineDetail({ line, onEdit, onBack, onDelete }) {
                   <span className="ltr-stop-name">
                     {stop.name} {index === 0 ? '(départ)' : index === line.stops.length - 1 ? '(arrivée)' : ''}
                   </span>
+                  {/* Afficher directement la durée cumulative depuis les données */}
+                  <span className="ltr-stop-duration">
+                    {stop.duree} min {/* Modification ici */}
+                  </span>
                 </div>
               ))
             ) : (
@@ -626,7 +641,7 @@ function LineForm({ line, onCancel, onSave }) {
   const [formErrors, setFormErrors] = useState({});
   const [mapWaypoints, setMapWaypoints] = useState([]);
   const [geocodingInProgress, setGeocodingInProgress] = useState(false);
-  
+  const [routeData, setRouteData] = useState(null);
   useEffect(() => {
     // Synchroniser le départ et l'arrivée avec le premier et dernier arrêt
     if (stops.length >= 2) {
@@ -692,20 +707,21 @@ function LineForm({ line, onCancel, onSave }) {
   };
   
   const addStop = () => {
-    // Ajouter un nouvel arrêt avant le dernier (l'arrivée)
-    const newStops = [...stops];
-    const newStop = { name: "" };
-    
-    if (newStops.length >= 2) {
-      // Insérer avant le dernier arrêt (l'arrivée)
-      newStops.splice(newStops.length - 1, 0, newStop);
-    } else {
-      // S'il y a moins de 2 arrêts, simplement ajouter à la fin
-      newStops.push(newStop);
-    }
-    
-    setStops(newStops);
-  };
+  const newStops = [...stops];
+  
+  // Calculer la durée par défaut comme la moyenne entre les arrêts adjacents
+  const insertIndex = newStops.length - 1;
+  const prevDuration = newStops[insertIndex - 1]?.duree || 0;
+  const nextDuration = newStops[insertIndex]?.duree || 0;
+  const newDuration = Math.round((prevDuration + nextDuration) / 2);
+
+  newStops.splice(insertIndex, 0, { 
+    name: "", 
+    duree: newDuration // Attribution d'une durée réaliste
+  });
+
+  setStops(newStops);
+};
   
   const removeStop = (index) => {
     // Ne pas permettre de supprimer le départ ou l'arrivée
@@ -738,28 +754,36 @@ function LineForm({ line, onCancel, onSave }) {
   
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Vérification finale avant envoi
+
     if (!formData.number || formData.number.trim() === '') {
       setFormErrors(prev => ({ ...prev, number: 'Le numéro de ligne est obligatoire' }));
       return;
     }
-    
-    // Préparer les arrêts pour l'envoi
-    const finalStops = stops.filter(stop => stop.name.trim() !== '');
-    
-    // Vérifier qu'il y a au moins un départ et une arrivée
+
+    const finalStops = stops.map((stop, index) => {
+    // Garder la durée existante si elle est valide
+    let duration = Number(stop.duree) || 0;
+
+    // Ne calculer que si l'itinéraire est à jour
+    if (routeData?.routes?.[0]?.legs && index > 0) {
+      duration = Math.round(
+        routeData.routes[0].legs.slice(0, index).reduce((acc, leg) => acc + leg.duration, 0) / 60
+      );
+    }
+
+    return { ...stop, duree: duration };
+  });
+
     if (finalStops.length < 2) {
       setFormErrors(prev => ({ ...prev, stops: 'Au moins un départ et une arrivée sont requis' }));
       return;
     }
-    
-    // Mise à jour des données du formulaire avec les arrêts finaux
+
     const finalFormData = {
       ...formData,
       stops: finalStops
     };
-    
+
     onSave(finalFormData);
   };
   
@@ -772,7 +796,7 @@ function LineForm({ line, onCancel, onSave }) {
       });
       return;
     }
-    
+
     try {
       setGeocodingInProgress(true);
       
@@ -794,9 +818,41 @@ function LineForm({ line, onCancel, onSave }) {
         });
         return;
       }
+
+      // Requête OSRM avec tous les waypoints
+      const waypointsString = validWaypoints
+        .map(wp => `${wp.lng},${wp.lat}`)
+        .join(';');
       
-      // Mettre à jour les waypoints de la carte
-      setMapWaypoints(validWaypoints);
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${waypointsString}?overview=full&geometries=geojson`
+      );
+      const data = await response.json();
+      
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        setRouteData(data);
+        
+        // Mettre à jour les stops avec les durées calculées
+        const updatedStops = stops.map((stop, index) => ({
+          ...stop,
+          duree: index === 0 ? 0 : Math.round(data.routes[0].legs[index-1].duration / 60)
+        }));
+        
+        setStops(updatedStops);
+        setMapWaypoints(validWaypoints);
+        
+        // Mettre à jour les informations globales
+        updateRouteInfo({
+          distance: (data.routes[0].distance / 1000).toFixed(1) + ' km',
+          duree: Math.round(data.routes[0].duration / 60) + ' min'
+        });
+      } else {
+        console.error("Pas d'itinéraire trouvé:", data);
+        setFormErrors({
+          ...formErrors,
+          route: "Impossible de calculer l'itinéraire. Vérifiez les adresses."
+        });
+      }
       
       // Nettoyer les erreurs liées à l'itinéraire
       setFormErrors(prev => {
@@ -814,6 +870,7 @@ function LineForm({ line, onCancel, onSave }) {
       setGeocodingInProgress(false);
     }
   };
+
   
   return (
     <div className="ltr-form-container">

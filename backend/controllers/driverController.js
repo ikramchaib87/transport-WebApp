@@ -6,7 +6,7 @@ exports.getDrivers = async (req, res) => {
     // 1. Connexion au serveur LDAP
     const client = ldap.createClient({ url: LDAP_URL });
 
-    // 2. Recherche du groupe 'chauffeur' (copie exacte)
+    // 2. Recherche du groupe 'chauffeur'
     const groupSearchOptions = {
       filter: '(&(objectClass=posixGroup)(cn=chauffeur))',
       scope: 'sub',

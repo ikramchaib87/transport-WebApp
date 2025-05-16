@@ -242,7 +242,7 @@ const TrajetAdmin = () => {
       };
   
       // Envoyer les données à l'API
-      const response = await fetch('http://localhost:5000/api/trajet', {
+      const response = await fetch('http://localhost:5000/api/trajets', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -407,7 +407,9 @@ const TrajetAdmin = () => {
               </tr>
             </thead>
             <tbody>
-              {trajetsReguliers.map((trajet) => (
+              {trajetsReguliers
+              .filter(trajet => trajet.ligne_id !== null)
+              .map((trajet) => (
                 <tr className="trjt-tr" key={trajet.id}>
                   <td className="trjt-td">N°{trajet.ligne_number}</td>
                   <td className="trjt-td">{trajet.depart}</td>
@@ -617,7 +619,7 @@ const TrajetAdmin = () => {
           )}
         </div>
         
-        <button 
+        <button
           className="trjt-add-stop-btn" 
           onClick={handleAddArret}
         >

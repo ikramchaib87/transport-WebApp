@@ -23,7 +23,6 @@ let DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
-// Composant pour gérer le routage
 
 function RoutingMachine({ waypoints, updateRouteInfo }) {
   const map = useMap();
@@ -435,7 +434,6 @@ function LinesListView({ lines, searchTerm, setSearchTerm, onSelectLine, onAddNe
 }
 
 // Vue détaillée d'une ligne avec la carte
-// Modification de la fonction LineDetail pour corriger l'affichage des durées
 function LineDetail({ line, onEdit, onBack, onDelete }) {
   const [mapWaypoints, setMapWaypoints] = useState([]);
 
@@ -901,7 +899,7 @@ function LineForm({ line, onCancel, onSave }) {
                 value={formData.number}
                 onChange={handleChange}
                 className={`ltr-form-input ${formErrors.number ? 'ltr-input-error' : ''}`}
-                placeholder="ex: L1"
+                placeholder="ex: L100"
                 required
               />
               {formErrors.number && (
@@ -917,7 +915,7 @@ function LineForm({ line, onCancel, onSave }) {
                 value={formData.name}
                 onChange={handleChange}
                 className="ltr-form-input"
-                placeholder="ex: Siège - Usine Nord"
+                placeholder="ex: Siège - cheraga"
               />
             </div>
             
@@ -932,7 +930,7 @@ function LineForm({ line, onCancel, onSave }) {
                   value={formData.depart}
                   onChange={handleChange}
                   className="ltr-form-input"
-                  placeholder="ex: Siège social, Paris"
+                  placeholder="ex: SONATRACH Direction Générale, Hydra"
                   required
                 />
               </div>
@@ -945,7 +943,7 @@ function LineForm({ line, onCancel, onSave }) {
                   value={formData.arrivee}
                   onChange={handleChange}
                   className="ltr-form-input"
-                  placeholder="ex: Usine Nord, Lyon"
+                  placeholder="ex:  Gare Routière, Cheraga"
                   required
                 />
               </div>
