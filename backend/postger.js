@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Configuration LDAP
-const LDAP_URL = 'ldap://192.168.42.220';
+const LDAP_URL = 'ldap://192.168.197.220';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 
 const pool = new Pool({
@@ -459,51 +459,60 @@ app.put('/api/transport-requests/:id/status', async (req, res) => {
     const { id } = req.params;
     const { statut, vehicule_id, vehicule_type, vehicule_matricule } = req.body;
     
-    // Validation du statut
+    // Validation
     if (!statut || !['En attente', 'Approuvée', 'Rejetée'].includes(statut)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Statut invalide. Valeurs acceptées: En attente, Approuvée, Rejetée'
-      });
+      return res.status(400).json({ success: false, message: 'Statut invalide' });
     }
 
-    // Vérification supplémentaire pour les approbations
+    // Récupérer la demande
+    const { rows: [demande] } = await pool.query(
+      'SELECT * FROM transport_requests WHERE id = $1', [id]);
+    if (!demande) return res.status(404).json({ success: false, message: 'Demande non trouvée' });
+
+    // Gestion employé si approbation
     if (statut === 'Approuvée') {
-      // Vérifier que les infos véhicule sont fournies
-      if (!vehicule_id || !vehicule_type || !vehicule_matricule) {
-        return res.status(400).json({
-          success: false,
-          message: 'Les informations du véhicule sont requises pour approuver une demande'
-        });
-      }
-
-      // Vérifier la disponibilité des places
-      const verificationQuery = `
-        SELECT 
-          CASE 
-            WHEN $2 = 'interne' THEN 
-              (SELECT nb_places FROM bus WHERE id = $1) - 
-              (SELECT COUNT(*) FROM transport_requests 
-               WHERE vehicule_id = $1 AND vehicule_type = $2 AND statut = 'Approuvée')
-            WHEN $2 = 'externe' THEN 
-              (SELECT nb_places FROM external_buses WHERE id = $1) - 
-              (SELECT COUNT(*) FROM transport_requests 
-               WHERE vehicule_id = $1 AND vehicule_type = $2 AND statut = 'Approuvée')
-          END as places_restantes
-      `;
+      const lineId = isNaN(demande.itineraire) ? null : parseInt(demande.itineraire);
       
-      const verificationResult = await pool.query(verificationQuery, [vehicule_id, vehicule_type]);
-      
-      if (verificationResult.rows[0].places_restantes <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Plus de places disponibles dans ce véhicule'
-        });
-      }
+      await pool.query(`
+        INSERT INTO employes (
+          ldap_id, nom, prenom, email, telephone, 
+          fonction, post, affectation, photo_url,
+          adresse, commune, wilaya, line_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ON CONFLICT (ldap_id) 
+        DO UPDATE SET
+          nom = EXCLUDED.nom,
+          prenom = EXCLUDED.prenom,
+          email = EXCLUDED.email,
+          telephone = EXCLUDED.telephone,
+          fonction = EXCLUDED.fonction,
+          post = EXCLUDED.post,
+          affectation = EXCLUDED.affectation,
+          photo_url = EXCLUDED.photo_url,
+          adresse = EXCLUDED.adresse,
+          commune = EXCLUDED.commune,
+          wilaya = EXCLUDED.wilaya,
+          line_id = EXCLUDED.line_id,
+          updated_at = NOW()
+      `, [
+        demande.matricule,  // ldap_id = matricule
+        demande.nom, 
+        demande.prenom, 
+        demande.email,
+        demande.phone,
+        demande.fonction,
+        demande.post,
+        demande.affectation,
+        demande.image_path, // photo_url
+        demande.adresse,
+        demande.commune,
+        demande.wilaya,
+        lineId
+      ]);
     }
 
-    // Construction de la requête de mise à jour
-    let query = `
+    // Mise à jour demande
+    const { rows: [updatedDemande] } = await pool.query(`
       UPDATE transport_requests 
       SET statut = $1, 
           date_decision = NOW(), 
@@ -513,81 +522,21 @@ app.put('/api/transport-requests/:id/status', async (req, res) => {
           vehicule_matricule = $4
       WHERE id = $5
       RETURNING *
-    `;
-    let params = [statut, vehicule_id, vehicule_type, vehicule_matricule, id];
+    `, statut === 'Approuvée' 
+      ? [statut, vehicule_id, vehicule_type, vehicule_matricule, id]
+      : [statut, null, null, null, id]);
 
-    // Si ce n'est pas une approbation, ne pas mettre à jour les infos véhicule
-    if (statut !== 'Approuvée') {
-      query = `
-        UPDATE transport_requests 
-        SET statut = $1, 
-            date_decision = NOW(), 
-            is_new = false,
-            vehicule_id = NULL,
-            vehicule_type = NULL,
-            vehicule_matricule = NULL
-        WHERE id = $2
-        RETURNING *
-      `;
-      params = [statut, id];
-    }
-
-    const result = await pool.query(query, params);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Demande non trouvée'
-      });
-    }
-    
-    const updatedRequest = result.rows[0];
-    
-    // Envoyer un email de notification
-    const notificationMailOptions = {
-      from: '"Sonatrach Transport" <no-reply@sonatrach.dz>',
-      to: updatedRequest.email,
-      subject: `Mise à jour de votre demande de transport - ${statut}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #003366;">Mise à jour de votre demande de transport</h2>
-          <p>Bonjour ${updatedRequest.prenom} ${updatedRequest.nom},</p>
-          <p>Le statut de votre demande de transport (référence: TR-${updatedRequest.id}) a été mis à jour:</p>
-          <p>Nouveau statut: <strong>${statut}</strong></p>
-          ${statut === 'Approuvée' ? `
-            <p>Détails du véhicule attribué:</p>
-            <ul>
-              <li>Type: ${vehicule_type === 'interne' ? 'Bus interne' : 'Bus externe'}</li>
-              <li>Matricule: ${vehicule_matricule}</li>
-            </ul>
-            <p>Un responsable du service transport vous contactera prochainement pour les détails pratiques.</p>
-          ` : ''}
-          ${statut === 'Rejetée' ? `
-            <p>Votre demande a été rejetée. Pour plus d'informations, veuillez contacter le service transport.</p>
-          ` : ''}
-          <p>Cordialement,<br>L'équipe Transport Sonatrach</p>
-        </div>
-      `
-    };
-    
-    // Envoyer l'email (enveloppé dans un try-catch pour ne pas bloquer la réponse)
-    try {
-      await transporter.sendMail(notificationMailOptions);
-    } catch (emailError) {
-      console.error('Erreur lors de l\'envoi de l\'email:', emailError);
-    }
-    
-    return res.json({
+    return res.json({ 
       success: true,
-      message: `Statut de la demande mis à jour avec succès: ${statut}`,
-      data: updatedRequest
+      message: `Demande ${statut}`,
+      data: updatedDemande
     });
     
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut:', error);
+    console.error('Erreur:', error);
     return res.status(500).json({ 
       success: false, 
-      message: 'Erreur lors de la mise à jour du statut de la demande' 
+      message: 'Erreur serveur' 
     });
   }
 });

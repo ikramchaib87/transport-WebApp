@@ -1,155 +1,285 @@
-.bod {
-    display: flex;
-    background-color: #d9d9d9;
-    min-height: calc(100vh - 60px);
-  }
-  
-  .profile-container {
-    flex-grow: 1;
-    background-color: #ffffff;
-    margin: 1.5rem;
-    padding: 2rem;
-    border-radius: 8px;
-    width: 85%;
-    margin: 20px;
+/* Profil Employé - Styles */
+.employe {
+  display: flex;
+  background-color: #ffffff;
+  min-height: calc(100vh - 60px);
+}
 
+.employe-container {
+  flex-grow: 1;
+  background-color: #ffffff;
+  margin: auto;
+  padding: 2rem;
+  width: 85%;
+  margin: 20px;
   height: 100%;
+}
+
+.employe-title {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  border-bottom: 1px solid #FF7700;
+  padding-bottom: 0.8rem;
+}
+
+.employe-section {
+  margin-bottom: 1rem;
+  padding: 1.2rem;
+  border-radius: 6px;
+  background-color: #ffffff;
+  border: 1px solid #e6e9ed;
+}
+
+/* Section avec l'avatar et les infos personnelles */
+.employe-section:first-of-type {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.employe-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e6e9ed;
+}
+
+.employe-info {
+  flex-grow: 1;
+}
+
+.employe-info p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.employe-section h3 {
+  font-size: 1.2rem;
+  color: #3e4c59;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.employe-section h3:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background-color: #3182ce;
+}
+
+/* Styles pour le statut */
+.statu-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  background-color: #ffffff;
+  color: #2b6cb0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.statu-badge.active {
+  background-color: #ffffff;
+  color: #047857;
+}
+
+/* Tables de données */
+.employe-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.employe-table th,
+.employe-table td {
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #e6e9ed;
+}
+
+.employe-table th {
+  background-color: #f9fafb;
+  font-weight: 500;
+  color: #4a5568;
+  width: 40%;
+}
+
+.employe-table tr:last-child th,
+.employe-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Actions multiples */
+.employe-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-direction: column;
+}
+
+/* Styles pour les liens */
+.employe-link {
+  display: inline-block;
+  padding: none;
+  background-color: rgb(255, 255, 255);
+  color: #89909e;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  flex: 1;
+  width: 200px;
+  text-align: left;
+}
+
+.employe-link:hover {
+  color: #FF7700;
+  transform: translate3d(-2px);
+}
+
+/* Bouton de déconnexion */
+.employe-logout {
+  background-color: #FF7700;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.employe-logout:hover {
+  background-color: #e76c00;
+}
+
+/* Message d'erreur */
+.error-message {
+  background-color: #fff5f5;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #fed7d7;
+  margin: 1rem 0;
+}
+
+.retry-button {
+  background-color: #FF7700;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background-color: #e76c00;
+}
+
+/* Écran de chargement */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  color: #4a5568;
+}
+
+.logout-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: #4a5568;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .employe-section:first-of-type {
+    flex-direction: column;
+    align-items: flex-start;
   }
   
-  .profile-title {
-    font-size: 1.8rem;
-    color: #2c3e50;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-    border-bottom: 1px solid #FF7700;
-    padding-bottom: 0.8rem;
-  }
-  
-  .profile-section {
-    margin-bottom: 1rem;
+  .employe-container {
+    margin: 1rem;
     padding: 1.2rem;
-    border-radius: 6px;
-    background-color: #ffffff;
-    border: 1px solid #e6e9ed;
+    margin-left: 70px;
   }
   
-  /* Section avec l'avatar et les infos personnelles */
-  .profile-section:first-of-type {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
+  .employe-actions {
+    flex-direction: column;
+    gap: 0.5rem;
   }
   
-  .profile-avatar {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #cbcbcc;
-  }
-  
-  .profile-info {
-    flex-grow: 1;
-  }
-  
-  .profile-info p {
-    margin: 0.5rem 0;
-    font-size: 1rem;
-    color: #4a5568;
-    line-height: 1.5;
-  }
-  
-  .profile-section h3 {
-    font-size: 1.2rem;
-    color: #3e4c59;
-    margin-bottom: 1rem;
-    font-weight: 600;
-  }
-  
-  /* Styles pour le statut */
-  .status-badge {
-    display: inline-block;
-    padding: 0.3rem 0.8rem;
-    background-color: #ebf5ff;
-    color: #2b6cb0;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-  
-  .status-badge.active {
-    background-color: #ffffff;
-    color: #047857;
-  }
-  
-  /* Styles pour les liens */
-  .profile-link {
-    display: inline-block;
-    margin-top: 0.8rem;
-    padding: 0.5rem 1rem;
-    background-color: white;
-    color: #587ea7;
-    text-decoration: none;
-    border-radius: 4px;
-    font-weight: 500;
-    font-size: 0.9rem;
-    transition: color 0.2s;
-  }
-  
-  .profile-link:hover {
-    color: #1a56db;
-  }
-  
-  /* Bouton de déconnexion */
-  .profile-logout {
-    background-color: #FF7700;
-    color: white;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    font-weight: 500;
-    transition: background-color 0.2s;
-  }
-  
-  .profile-logout:hover {
-    background-color: #e76c00;
-  }
-  
-  /* Table de données */
-  .profile-table {
+  .employe-link {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 0.5rem;
   }
-  
-  .profile-table th,
-  .profile-table td {
-    padding: 0.8rem;
-    text-align: left;
-    border-bottom: 1px solid #e6e9ed;
-  }
-  
-  .profile-table th {
-    background-color: #f9fafb;
-    font-weight: 500;
-    color: #4a5568;
-  }
-  
-  /* Responsive design */
-  @media (max-width: 768px) {
-    .profile-section:first-of-type {
-      flex-direction: column;
-      align-items: flex-start;
-      
-    }
-    
-    .profile-container {
-     
-      margin-left: 70px;
-      
-    }
-  }
-   
-  
+}
+
+/* Modal de déconnexion (identique au chauffeur) */
+.logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.logout-modal-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.logout-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.logout-modal-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.logout-cancel-button {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.logout-confirm-button {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.logout-confirm-button:hover {
+  background-color: #c0392b;
+}
+
+.logout-cancel-button:hover {
+  background-color: #e5e5e5;
+}

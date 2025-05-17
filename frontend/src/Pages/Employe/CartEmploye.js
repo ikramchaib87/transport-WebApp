@@ -1,9 +1,61 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from '../../components/Navbar';
 import Header from "../../components/Header";
 import "./CartEmploye.css";
 import Logot from "../../icons/logot.png";
+import axios from "axios";
+import html2canvas from 'html2canvas';
 const CartEmploye = () => {
+  const [employeeData, setEmployeeData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user'));
+        
+        if (!user) {
+          window.location.href = '/LoginEmploye';
+          return;
+        }
+
+        const response = await axios.get('http://localhost:5000/api/employe-data', {
+          params: { 
+            username: user.username,
+            uidNumber: user.uidNumber
+          }
+        });
+
+        setEmployeeData(response.data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeData();
+  }, []);
+
+  if (loading) {
+    return <div className="loading">Chargement en cours...</div>;
+  }
+
+  if (error) {
+    return <div className="error">Erreur: {error}</div>;
+  }
+const handleDownload = () => {
+  // Créer un canvas pour générer l'image
+  const carteElement = document.querySelector('.emp-carte-transport');
+  
+  html2canvas(carteElement).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'carte-transport.jpg';
+    link.href = canvas.toDataURL('image/jpeg');
+    link.click();
+  });
+};
   return (
     <div>
       <Header />
@@ -30,23 +82,42 @@ const CartEmploye = () => {
                 <div className="emp-carte-info">
                   <div className="emp-info-field">
                     <label>Nom:</label>
+                    <span className="emp-info-value">{employeeData?.nom || "Non disponible"}</span>
                     <div className="emp-field-underline"></div>
                   </div>
                   <div className="emp-info-field">
-                    <label>prénom:</label>
+                    <label>Prénom:</label>
+                    <span className="emp-info-value">{employeeData?.prenom || "Non disponible"}</span>
                     <div className="emp-field-underline"></div>
                   </div>
                   <div className="emp-info-field">
                     <label>Matricule:</label>
+                    <span className="emp-info-value">{employeeData?.ldap_id || "Non disponible"}</span>
                     <div className="emp-field-underline"></div>
                   </div>
                   <div className="emp-info-field">
                     <label>Ligne:</label>
+                    <span className="emp-info-value">
+                      {employeeData?.line_number && employeeData?.line_name 
+                        ? `${employeeData.line_number} - ${employeeData.line_name}`
+                        : "Non assignée"}
+                    </span>
                     <div className="emp-field-underline"></div>
                   </div>
                 </div>
                 <div className="emp-carte-photo">
-                  <div className="emp-photo-placeholder"></div>
+                  {employeeData?.photo_url ? (
+                    <img 
+                      src={`http://localhost:5000${employeeData.photo_url}`} 
+                      alt="Photo employé" 
+                      className="emp-photo-placeholder"
+                      
+                    />
+                  ) : (
+                  
+                      <div className="emp-photo-placeholder" />
+                       
+                  )}
                 </div>
               </div>
             </div>
@@ -68,9 +139,9 @@ const CartEmploye = () => {
           </div>
 
           <div className="emp-download-section">
-            <button className="emp-download-button">
-              Télégarger la carte en format jpg <span className="emp-download-icon">↓</span>
-            </button>
+            <button className="emp-download-button" onClick={handleDownload}>
+  Télécharger la carte en format jpg <span className="emp-download-icon">↓</span>
+</button>
           </div>
         </div>
       </div>

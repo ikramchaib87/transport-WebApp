@@ -97,7 +97,7 @@ async function handleLDAPLogin(username, password) {
           authClient.search(LDAP_SEARCH_BASE, {
             filter: `(uid=${escapedUsername})`,
             scope: 'sub',
-            attributes: ['uid', 'cn', 'givenName', 'sn', 'mail']
+            attributes: ['uid', 'uidNumber', 'cn', 'givenName', 'sn', 'mail']
           }, async (userErr, userRes) => {
             if (userErr) {
               console.error('Erreur lors de la récupération des données utilisateur:', userErr);
@@ -193,6 +193,7 @@ async function handleLDAPLogin(username, password) {
                 resolve({
                   user: {
                     username: userData.uid,
+                     uidNumber: userData.uidNumber, // Ajouter le uidNumber
                     displayName: userData.cn || `${userData.givenName} ${userData.sn}`,
                     role: userRole,
                     isExternal: false
