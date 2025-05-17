@@ -2,153 +2,130 @@ const { ldap, LDAP_URL, LDAP_SEARCH_BASE, LDAP_GROUP_BASE } = require('../config
 const pool = require('../config/db');
 
 exports.getEmployees = async (req, res) => {
-  // 1. Create LDAP client (identical to your original code)
-  const client = ldap.createClient({
-    url: LDAP_URL
-  });
-
-  // 2. Search for 'employe' group members (exact copy)
-  const groupSearchOptions = {
-    filter: `(&(objectClass=posixGroup)(cn=employe))`,
-    scope: 'sub',
-    attributes: ['memberUid']
-  };
-
-  client.search(LDAP_GROUP_BASE, groupSearchOptions, (groupErr, groupRes) => {
-    if (groupErr) {
-      console.error('Erreur de recherche du groupe LDAP:', groupErr);
-      return res.status(500).json({ 
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        e.id,
+        e.ldap_id,
+        e.nom,
+        e.prenom,
+        e.email,
+        e.telephone,
+        e.fonction,
+        e.post,
+        e.affectation,
+        e.photo_url,
+        e.adresse,
+        e.commune,
+        e.wilaya,
+        e.statut,
+        e.created_at,
+        e.updated_at,
+        l.id as line_id,
+        l.number as line_number,
+        l.name as line_name,
+        l.depart as line_depart,
+        l.arrivee as line_arrivee
+      FROM employes e
+      LEFT JOIN lines l ON e.line_id = l.id
+      ORDER BY e.nom, e.prenom
+    `);
+    
+    res.json({ 
+      success: true, 
+      employes: rows,
+      message: 'Liste des employés récupérée avec succès'
+    });
+  } catch (error) {
+    console.error('Erreur:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la récupération des employés' 
+    });
+  }
+};
+exports.getEmployeesid = async (req, res) => {
+try {
+    const { id } = req.params;
+    
+    const { rows } = await pool.query(`
+      SELECT 
+        e.*,
+        l.id as line_id,
+        l.number as line_number,
+        l.name as line_name
+      FROM employes e
+      LEFT JOIN lines l ON e.line_id = l.id
+      WHERE e.id = $1 OR e.ldap_id = $1
+    `, [id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ 
         success: false, 
-        message: 'Erreur lors de la recherche du groupe dans LDAP' 
+        message: 'Employé non trouvé' 
       });
     }
-
-    let memberUids = [];
-
-    groupRes.on('searchEntry', (entry) => {
-      const attribute = entry.attributes.find(attr => attr.type === 'memberUid');
-      if (attribute && attribute.values) {
-        memberUids = attribute.values;
-      }
+    
+    res.json({ 
+      success: true, 
+      employe: rows[0],
+      message: 'Employé récupéré avec succès'
     });
-
-    groupRes.on('error', (err) => {
-      console.error('Erreur lors de la recherche du groupe:', err);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Erreur pendant la recherche du groupe LDAP' 
+  } catch (error) {
+    console.error('Erreur:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la récupération de l\'employé' 
+    });
+  }
+};
+exports.getemployessearch = async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Le terme de recherche est requis'
       });
+    }
+    
+    const searchTerm = `%${q}%`;
+    
+    const { rows } = await pool.query(`
+      SELECT 
+        e.id,
+        e.ldap_id,
+        e.nom,
+        e.prenom,
+        e.email,
+        e.photo_url,
+        l.number as line_number,
+        l.name as line_name
+      FROM employes e
+      LEFT JOIN lines l ON e.line_id = l.id
+      WHERE 
+        e.ldap_id ILIKE $1 OR
+        e.nom ILIKE $1 OR
+        e.prenom ILIKE $1 OR
+        e.email ILIKE $1 OR
+        e.commune ILIKE $1 OR
+        e.wilaya ILIKE $1 OR
+        l.name ILIKE $1 OR
+        l.number::text ILIKE $1
+      LIMIT 20
+    `, [searchTerm]);
+    
+    res.json({ 
+      success: true, 
+      results: rows,
+      message: 'Résultats de la recherche'
     });
-
-    groupRes.on('end', () => {
-      if (memberUids.length === 0) {
-        client.unbind();
-        return res.json({
-          success: true,
-          employes: [],
-          message: 'Aucun employé trouvé'
-        });
-      }
-
-      // 3. Fetch all employee users (exact copy of your original user search)
-      const userFilter = `(|${memberUids.map(uid => `(uid=${uid})`).join('')})`;
-      
-      const userSearchOptions = {
-        filter: userFilter,
-        scope: 'sub',
-        attributes: ['uid', 'cn', 'sn', 'givenName', 'mail', 'telephoneNumber', 'uidNumber', 'accountStatus', 'userAccountControl']
-      };
-
-      client.search(LDAP_SEARCH_BASE, userSearchOptions, (searchErr, searchRes) => {
-        if (searchErr) {
-          console.error('Erreur de recherche utilisateurs LDAP:', searchErr);
-          client.unbind();
-          return res.status(500).json({ 
-            success: false, 
-            message: 'Erreur lors de la recherche des utilisateurs dans LDAP' 
-          });
-        }
-
-        const employes = [];
-
-        searchRes.on('searchEntry', (entry) => {
-          const employe = {};
-          
-          entry.attributes.forEach(attr => {
-            const value = attr.values && attr.values.length > 0 ? attr.values[0] : null;
-            
-            switch(attr.type) {
-              case 'uid':
-                employe.id = value;
-                employe.ldap_id = value;
-                break;
-              case 'sn':
-                employe.nom = value;
-                break;
-              case 'givenName':
-                employe.prenom = value;
-                break;
-              case 'uidNumber':
-                employe.matricule = value;
-                break;
-              case 'telephoneNumber':
-                employe.tel = value;
-                break;
-              case 'mail':
-                employe.email = value;
-                break;
-              case 'accountStatus':
-                employe.statut = value;
-                break;
-              case 'userAccountControl':
-                if (value) {
-                  try {
-                    const uac = parseInt(value.toString());
-                    if (!isNaN(uac)) {
-                      employe.statut = (uac & 0x0002) ? 'Désactivé' : 'Actif';
-                      employe.is_active = !((uac & 0x0002));
-                    } else {
-                      employe.statut = 'Actif';
-                      employe.is_active = true;
-                    }
-                  } catch (error) {
-                    console.error('Erreur lors du traitement de userAccountControl:', error);
-                    employe.statut = 'Actif';
-                    employe.is_active = true;
-                  }
-                }
-                break;
-            }
-          });
-
-          if (!employe.statut) {
-            employe.statut = 'Actif';
-            employe.is_active = true;
-          }
-
-          employes.push(employe);
-        });
-
-        searchRes.on('error', (err) => {
-          console.error('Erreur lors de la recherche:', err);
-          client.unbind();
-          return res.status(500).json({ 
-            success: false, 
-            message: 'Erreur pendant la recherche des utilisateurs LDAP' 
-          });
-        });
-
-        searchRes.on('end', () => {
-          client.unbind();
-          
-          // 4. Return response (identical to your original)
-          res.json({
-            success: true,
-            employes: employes,
-            message: 'Employés récupérés depuis LDAP'
-          });
-        });
-      });
+  } catch (error) {
+    console.error('Erreur:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la recherche' 
     });
-  });
+  }
 };

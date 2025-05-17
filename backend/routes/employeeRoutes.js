@@ -4,5 +4,7 @@ const employeeController = require('../controllers/employeeController');
 
 // GET /api/employes
 router.get('/', employeeController.getEmployees);
+router.get('/:id', employeeController.getEmployeesid);
+router.get('/search', employeeController.getemployessearch);
 
 module.exports = router;
