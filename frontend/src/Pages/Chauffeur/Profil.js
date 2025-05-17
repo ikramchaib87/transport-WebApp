@@ -5,14 +5,27 @@ import "./Profil.css";
 import avatar from "../../icons/personne.png";
 import axios from "axios";
 
-const ProfilChauffeur = ({ onLogout }) => {
+const ProfilChauffeur = () => {
   const [driverData, setDriverData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user'));
+  // Retrieve user data from storage
+  const user = !isLoggingOut ? 
+    JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) : null;
 
   useEffect(() => {
+    // If user is null or we're logging out, don't fetch data
+    if (!user) {
+      if (!isLoggingOut) {
+        // If we're not in the process of logging out and user is null, redirect to login
+        window.location.href = '/';
+      }
+      return;
+    }
+
     const fetchDriverData = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/chauffeur-data', {
@@ -40,9 +53,48 @@ const ProfilChauffeur = ({ onLogout }) => {
     };
 
     fetchDriverData();
-  }, [user]);
+  }, [user, isLoggingOut]);
 
-  if (loading) {
+  // Fonction pour afficher la modal de confirmation
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  // Fonction pour annuler la déconnexion
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
+  };
+
+  // Fonction pour effectuer la déconnexion
+  const confirmLogout = async () => {
+    try {
+      // Flag to prevent data fetching during logout
+      setIsLoggingOut(true);
+      
+      // Appeler l'API de déconnexion
+      await axios.post('http://localhost:5000/api/auth/logout');
+      
+      // Supprimer les données utilisateur du stockage local
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+      
+      // Rediriger vers la page de connexion
+      window.location.href = '/login';
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      // Même en cas d'erreur, on déconnecte l'utilisateur localement
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+  };
+
+  // If no user and not in logout process, redirect to login
+  if (!user && !isLoggingOut) {
+    return null; // Will be redirected in useEffect
+  }
+
+  if (loading && !isLoggingOut) {
     return (
       <div>
         <Header />
@@ -57,7 +109,7 @@ const ProfilChauffeur = ({ onLogout }) => {
     );
   }
 
-  if (error) {
+  if (error && !isLoggingOut) {
     return (
       <div>
         <Header />
@@ -73,6 +125,15 @@ const ProfilChauffeur = ({ onLogout }) => {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Show a simple loading message during logout
+  if (isLoggingOut) {
+    return (
+      <div className="logout-screen">
+        <p>Déconnexion en cours...</p>
       </div>
     );
   }
@@ -194,7 +255,7 @@ const ProfilChauffeur = ({ onLogout }) => {
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button 
-                onClick={onLogout || (() => alert("Déconnexion indisponible"))} 
+                onClick={handleLogoutClick} 
                 className="chauffeur-logout"
               >
                 Déconnexion
@@ -203,6 +264,23 @@ const ProfilChauffeur = ({ onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmation de déconnexion */}
+      {showLogoutModal && (
+        <div className="logout-modal-overlay">
+          <div className="logout-modal-container">
+            <p>Êtes-vous sûr de vouloir vous déconnecter?</p>
+            <div className="logout-modal-buttons">
+              <button onClick={cancelLogout} className="logout-modal-button logout-cancel-button">
+                Annuler
+              </button>
+              <button onClick={confirmLogout} className="logout-modal-button logout-confirm-button">
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

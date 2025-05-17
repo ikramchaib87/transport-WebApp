@@ -251,3 +251,20 @@ exports.login = async (req, res) => {
     });
   }
 };
+
+// logout
+exports.logout = async (req, res) => {
+  try {
+    res.json({ 
+      success: true, 
+      message: 'Déconnexion réussie' 
+    });
+  } catch (error) {
+    console.error('[ERREUR] logout:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la déconnexion' 
+    });
+  }
+};
+

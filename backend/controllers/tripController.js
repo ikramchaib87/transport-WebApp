@@ -23,28 +23,32 @@ exports.posttrajets = async (req, res) => {
     }
 
     const result = await client.query(
-      `INSERT INTO trajets (
-        ligne_id, ligne_number, depart, arrivee, jours,
-        heure_depart, heure_arrivee, duree, chauffeur,
-        vehicule, statut, arrets, remarques
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    `INSERT INTO trajets (
+      ligne_id, ligne_number, depart, arrivee, jours,
+      heure_depart, heure_arrivee, duree, chauffeur,
+      vehicule, statut, arrets, remarques,
+      date_debut, date_fin, active_dates
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *`,
-      [
-        ligne_id || null, 
-        ligne_number, 
-        depart, 
-        arrivee, 
-        jours,
-        heure_depart, 
-        heure_arrivee, 
-        duree || '', 
-        chauffeur || '',
-        vehicule || '', 
-        statut || 'Actif', 
-        arrets ? JSON.stringify(arrets) : null, 
-        remarques || ''
-      ]
-    );
+    [
+      ligne_id || null, 
+      ligne_number, 
+      depart, 
+      arrivee, 
+      jours,
+      heure_depart, 
+      heure_arrivee, 
+      duree || '', 
+      chauffeur || '',
+      vehicule || '', 
+      statut || 'Actif', 
+      arrets ? JSON.stringify(arrets) : null, 
+      remarques || '',
+      req.body.date_debut || null,
+      req.body.date_fin || null,
+      req.body.active_dates ? JSON.stringify(req.body.active_dates) : null
+    ]
+  );
 
     await client.query('COMMIT');
     res.status(201).json(result.rows[0]);
@@ -101,40 +105,46 @@ exports.updatetrajets = async (req, res) => {
     }
 
     const result = await client.query(
-      `UPDATE trajets SET
-        ligne_id = $1,
-        ligne_number = $2,
-        depart = $3,
-        arrivee = $4,
-        jours = $5,
-        heure_depart = $6,
-        heure_arrivee = $7,
-        duree = $8,
-        chauffeur = $9,
-        vehicule = $10,
-        statut = $11,
-        arrets = $12,
-        remarques = $13,
-        updated_at = NOW()
-      WHERE id = $14
-      RETURNING *`,
-      [
-        ligne_id || null, 
-        ligne_number, 
-        depart, 
-        arrivee, 
-        jours,
-        heure_depart, 
-        heure_arrivee, 
-        duree || '', 
-        chauffeur || '',
-        vehicule || '', 
-        statut || 'Actif', 
-        arrets ? JSON.stringify(arrets) : null, 
-        remarques || '',
-        trajetId
-      ]
-    );
+    `UPDATE trajets SET
+      ligne_id = $1,
+      ligne_number = $2,
+      depart = $3,
+      arrivee = $4,
+      jours = $5,
+      heure_depart = $6,
+      heure_arrivee = $7,
+      duree = $8,
+      chauffeur = $9,
+      vehicule = $10,
+      statut = $11,
+      arrets = $12,
+      remarques = $13,
+      date_debut = $14,
+      date_fin = $15,
+      active_dates = $16,
+      updated_at = NOW()
+    WHERE id = $17
+    RETURNING *`,
+    [
+      ligne_id || null, 
+      ligne_number, 
+      depart, 
+      arrivee, 
+      jours,
+      heure_depart, 
+      heure_arrivee, 
+      duree || '', 
+      chauffeur || '',
+      vehicule || '', 
+      statut || 'Actif', 
+      arrets ? JSON.stringify(arrets) : null, 
+      remarques || '',
+      req.body.date_debut || null,
+      req.body.date_fin || null,
+      req.body.active_dates ? JSON.stringify(req.body.active_dates) : null,
+      trajetId
+    ]
+  );
 
     if (result.rows.length === 0) {
       await client.query('ROLLBACK');
