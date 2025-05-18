@@ -9,7 +9,7 @@ exports.posttrajets = async (req, res) => {
     const {
       ligne_id, ligne_number, depart, arrivee, jours,
       heure_depart, heure_arrivee, duree, chauffeur,
-      vehicule, statut, arrets, remarques
+      vehicule, statut, arrets
     } = req.body;
 
     // Validate time formats
@@ -26,9 +26,9 @@ exports.posttrajets = async (req, res) => {
     `INSERT INTO trajets (
       ligne_id, ligne_number, depart, arrivee, jours,
       heure_depart, heure_arrivee, duree, chauffeur,
-      vehicule, statut, arrets, remarques,
-      date_debut, date_fin, active_dates
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      vehicule, statut, arrets,
+      date_debut, date_fin, active_dates,  numero_chauffeur, nombre_places
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
     [
       ligne_id || null, 
@@ -43,10 +43,11 @@ exports.posttrajets = async (req, res) => {
       vehicule || '', 
       statut || 'Actif', 
       arrets ? JSON.stringify(arrets) : null, 
-      remarques || '',
       req.body.date_debut || null,
       req.body.date_fin || null,
-      req.body.active_dates ? JSON.stringify(req.body.active_dates) : null
+      req.body.active_dates ? JSON.stringify(req.body.active_dates) : null ,
+      req.body.numero_chauffeur || '',
+      req.body.nombre_places || 0
     ]
   );
 
@@ -92,7 +93,7 @@ exports.updatetrajets = async (req, res) => {
     const {
       ligne_id, ligne_number, depart, arrivee, jours,
       heure_depart, heure_arrivee, duree, chauffeur,
-      vehicule, statut, arrets, remarques
+      vehicule, statut, arrets
     } = req.body;
 
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -118,12 +119,13 @@ exports.updatetrajets = async (req, res) => {
       vehicule = $10,
       statut = $11,
       arrets = $12,
-      remarques = $13,
-      date_debut = $14,
-      date_fin = $15,
-      active_dates = $16,
+      date_debut = $13,
+      date_fin = $14,
+      active_dates = $15,
+      numero_chauffeur = $16,
+      nombre_places = $17,
       updated_at = NOW()
-    WHERE id = $17
+    WHERE id = $18
     RETURNING *`,
     [
       ligne_id || null, 
@@ -138,10 +140,11 @@ exports.updatetrajets = async (req, res) => {
       vehicule || '', 
       statut || 'Actif', 
       arrets ? JSON.stringify(arrets) : null, 
-      remarques || '',
       req.body.date_debut || null,
       req.body.date_fin || null,
       req.body.active_dates ? JSON.stringify(req.body.active_dates) : null,
+      req.body.numero_chauffeur || '',
+      req.body.nombre_places || 0,
       trajetId
     ]
   );

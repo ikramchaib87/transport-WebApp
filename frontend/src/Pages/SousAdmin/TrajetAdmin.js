@@ -21,7 +21,7 @@ const TrajetAdmin = () => {
     ligne: "",
     depart: "",
     arrivee: "",
-    jours: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"],
+    jours: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi"],
     heureDepart: "07:00",
     heureArrivee: "08:00",
     duree: "0 min",
@@ -29,7 +29,6 @@ const TrajetAdmin = () => {
     vehicule: "",
     statut: "Actif",
     arretsIntermediaires: [],
-    remarques: "",
     dateDebut: "",
     dateFin: "",
     activeDates: []
@@ -190,7 +189,6 @@ const TrajetAdmin = () => {
         arret.nom !== ligneSelectionnee.depart && 
         arret.nom !== ligneSelectionnee.arrivee
       ),
-      remarques: formData.remarques || ""
     });
 };
   // Improved calculateArrivalTime function
@@ -323,10 +321,11 @@ const TrajetAdmin = () => {
       vehicule: formData.vehicule,
       statut: formData.statut,
       arrets: formData.arretsIntermediaires,
-      remarques: formData.remarques || '',
       date_debut: formData.dateDebut,
       date_fin: formData.dateFin,
-      active_dates: formData.activeDates.map(formatDateToISO)
+      active_dates: formData.activeDates.map(formatDateToISO),
+      numero_chauffeur: formData.telephone || '',
+      nombre_places:  parseInt(formData.places) || 0 
     };
 
     const response = await fetch('http://localhost:5000/api/trajets', {
@@ -389,6 +388,15 @@ const TrajetAdmin = () => {
     setSelectedLigne(lignes.find(l => l.id === trajet.ligne_id));
     setShowAddRegularForm(true);
     
+    const formatDateForInput = (date) => {
+    if (!date) return "";
+    // Si la date est déjà au format YYYY-MM-DD (PostgreSQL)
+    if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return date;
+    }
+    // Si la date est un objet Date ou ISO string
+    return new Date(date).toISOString().split('T')[0];
+  };
     // Convertir les dates actives de string à Date si nécessaire
     const activeDates = trajet.active_dates 
       ? trajet.active_dates.map(dateStr => new Date(dateStr))
@@ -409,9 +417,11 @@ const TrajetAdmin = () => {
       statut: trajet.statut,
       arretsIntermediaires: Array.isArray(trajet.arrets) ? trajet.arrets : [],
       remarques: trajet.remarques || "",
-      dateDebut: trajet.date_debut || "",
-      dateFin: trajet.date_fin || "",
-      activeDates: activeDates
+      dateDebut: formatDateForInput(trajet.date_debut), 
+      dateFin: formatDateForInput(trajet.date_fin),   
+      activeDates: activeDates,
+       telephone: trajet.numero_chauffeur || '', 
+      places: trajet.nombre_places || ''     
     });
   };
 
@@ -497,7 +507,7 @@ const TrajetAdmin = () => {
     ligne: "",
     depart: "",
     arrivee: "",
-    jours: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"],
+    jours: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi"],
     heureDepart: "08:00",
     heureArrivee: "08:30",
     duree: "0 min",
