@@ -189,10 +189,6 @@ exports.getDrivers = async (req, res) => {
                 }
               }
               
-              console.log(`Nombre total de chauffeurs LDAP : ${ldapChauffeurs.length}`);
-              console.log(`Nombre de chauffeurs valides : ${validChauffeurs.length}`);
-              console.log(`Nombre de chauffeurs invalides (ignorés) : ${invalidChauffeurs.length}`);
-              
               // Detailed logging of invalid drivers
               if (invalidChauffeurs.length > 0) {
                 console.warn('Chauffeurs ignorés car ils n\'ont pas tous les champs requis:');
@@ -267,7 +263,6 @@ exports.getDrivers = async (req, res) => {
                       chauffeur.photo_url
                     ]
                   );
-                  console.log(`Insertion/mise à jour réussie pour le chauffeur ${chauffeur.ldap_id} (Matricule: ${chauffeur.matricule})`);
                 } catch (insertError) {
                   console.error(`Erreur lors de l'insertion/mise à jour du chauffeur en SQL:`, insertError);
                   console.error(`Données chauffeur problématiques:`, JSON.stringify(chauffeur));

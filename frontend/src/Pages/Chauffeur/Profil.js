@@ -79,13 +79,13 @@ const ProfilChauffeur = () => {
       sessionStorage.removeItem('user');
       
       // Rediriger vers la page de connexion
-      window.location.href = '/login';
+      window.location.href = '/';
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
       // Même en cas d'erreur, on déconnecte l'utilisateur localement
       localStorage.removeItem('user');
       sessionStorage.removeItem('user');
-      window.location.href = '/login';
+      window.location.href = '/';
     }
   };
 

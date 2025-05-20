@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from '../../components/Navbar';
 import Header from "../../components/Header";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faFileExport, faEdit, faTrash, faSearch, faTimes, faSave} from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faFileExport, faEdit, faTrash, faSearch, faTimes, faSave } from '@fortawesome/free-solid-svg-icons';
 import "./TrajetAdmin.css";
 
 const TrajetAdmin = () => {
@@ -17,6 +17,7 @@ const TrajetAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [trajetsReguliers, setTrajetsReguliers] = useState([]);
   const [editingTrajetId, setEditingTrajetId] = useState(null);
+  const [editingReturnId, setEditingReturnId] = useState(null);
   const [formData, setFormData] = useState({
     ligne: "",
     depart: "",
@@ -31,7 +32,11 @@ const TrajetAdmin = () => {
     arretsIntermediaires: [],
     dateDebut: "",
     dateFin: "",
-    activeDates: []
+    activeDates: [],
+    telephone: "",
+    places: "",
+    sens: 'aller',
+    createReturn: true
   });
 
   // Charger les données initiales
@@ -75,7 +80,80 @@ const TrajetAdmin = () => {
     fetchInitialData();
   }, []);
 
-  // Lorsqu'une ligne est sélectionnée
+ const fetchTrajet = async (trajetId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:5000/api/trajets/${trajetId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    // Créez une copie du texte de la réponse pour le débogage
+    const responseClone = response.clone();
+    const responseText = await responseClone.text();
+
+    if (!response.ok) {
+      // Essayez d'abord de parser le JSON
+      try {
+        const errorData = JSON.parse(responseText);
+        throw new Error(errorData.error || errorData.message || `Erreur HTTP ${response.status}`);
+      } catch (e) {
+        // Si ce n'est pas du JSON, utilisez le texte brut
+        throw new Error(responseText || `Erreur HTTP ${response.status}`);
+      }
+    }
+
+    // Parsez la réponse originale
+    const data = await response.json();
+    
+    if (!data.success || !data.trajet) {
+      throw new Error('Format de réponse inattendu de l\'API');
+    }
+
+    // Conversion des champs si nécessaire
+    const trajet = data.trajet;
+    if (trajet.arrets && typeof trajet.arrets === 'string') {
+      trajet.arrets = JSON.parse(trajet.arrets);
+    }
+    if (trajet.active_dates && typeof trajet.active_dates === 'string') {
+      trajet.active_dates = JSON.parse(trajet.active_dates);
+    }
+
+    return trajet;
+  } catch (error) {
+    console.error("Erreur fetchTrajet:", error);
+    throw new Error(`Impossible de charger le trajet: ${error.message}`);
+  }
+};
+const calculateStopTimes = (departTime, stops) => {
+  if (!stops || stops.length < 2) return [];
+  
+  const [departHours, departMinutes] = departTime.split(':').map(Number);
+  let totalMinutes = departHours * 60 + departMinutes;
+  
+  const stopTimes = [];
+  
+  // Ne pas inclure le dernier arrêt (point d'arrivée final)
+  for (let i = 1; i < stops.length - 1; i++) {
+    const stop = stops[i];
+    const durationMinutes = parseInt(stop.duree) || 0;
+    
+    // Ajouter la durée depuis le départ
+    totalMinutes = departHours * 60 + departMinutes + durationMinutes;
+    
+    const hours = Math.floor(totalMinutes / 60) % 24;
+    const minutes = totalMinutes % 60;
+    
+    stopTimes.push({
+      nom: stop.name,
+      heure: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+    });
+  }
+  
+  return stopTimes;
+};
+
   const handleLigneChange = async (ligneId) => {
     const ligneSelectionnee = lignes.find(l => l.id === ligneId);
     if (!ligneSelectionnee) return;
@@ -90,21 +168,18 @@ const TrajetAdmin = () => {
     // 1. Try to fetch from affectations API
     try {
       const response = await fetch(`http://localhost:5000/api/affectations/by-line/${ligneId}`);
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-      const data = await response.json();
-      
-      if (data?.success && data.affectation) {
-        const aff = data.affectation;
-        chauffeur = `${aff.nom || ''} ${aff.prenom || ''}`.trim();
-        vehicule = `${aff.marqueBus || ''} ${aff.modele || ''}`.trim();
-        telephone = aff.telephone || '';
-        places = aff.places_disponibles || '';
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.success && data.affectation) {
+          const aff = data.affectation;
+          chauffeur = `${aff.nom || ''} ${aff.prenom || ''}`.trim();
+          vehicule = `${aff.marqueBus || ''} ${aff.modele || ''}`.trim();
+          telephone = aff.telephone || '';
+          places = aff.places_disponibles || '';
+        }
       }
     } catch (error) {
       console.error("Erreur affectations:", error);
-      // Continue with fallback method if API fails
     }
 
     // 2. If not found, use fallback method
@@ -130,100 +205,53 @@ const TrajetAdmin = () => {
       }
     }
 
-    // Fonction pour calculer les heures des arrêts
-    const calculateStopTimes = (departTime, stops) => {
-      if (!stops || stops.length < 2) return [];
-      
-      // Convertir l'heure de départ en minutes depuis minuit
-      const [departHours, departMinutes] = departTime.split(':').map(Number);
-      let currentTimeMinutes = departHours * 60 + departMinutes;
-      
-      const stopTimes = [];
-      
-      // Pour chaque arrêt (sauf le premier qui est le départ)
-      for (let i = 1; i < stops.length; i++) {
-        const stop = stops[i];
-        // La durée est cumulative depuis le départ dans Lignes.js
-        const durationMinutes = parseInt(stop.duree) || 0;
-        
-        // Calculer l'heure de cet arrêt
-        const stopTimeMinutes = departHours * 60 + departMinutes + durationMinutes;
-        const hours = Math.floor(stopTimeMinutes / 60) % 24;
-        const minutes = stopTimeMinutes % 60;
-        
-        stopTimes.push({
-          nom: stop.name,
-          heure: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-        });
-      }
-      
-      return stopTimes;
-    };
-
-    // Calculer l'heure d'arrivée finale
     const heureArrivee = calculateArrivalTime(
       formData.heureDepart || "08:00", 
       ligneSelectionnee.duree || "0:00"
     );
 
-    // Calculer les heures des arrêts intermédiaires
     const arretsAvecHeures = ligneSelectionnee.stops 
       ? calculateStopTimes(formData.heureDepart || "08:00", ligneSelectionnee.stops)
       : [];
 
-    // Update form with all values including telephone and places
-    setFormData({
+    setFormData(prev => ({
+      ...prev,
       ligne: `N°${ligneSelectionnee.number}`,
       depart: ligneSelectionnee.depart,
       arrivee: ligneSelectionnee.arrivee,
-      jours: formData.jours, // Keep existing days
-      heureDepart: formData.heureDepart || "08:00",
       heureArrivee,
       duree: ligneSelectionnee.duree || "0 min",
       chauffeur,
       vehicule,
       telephone,
       places,
-      statut: formData.statut,
       arretsIntermediaires: arretsAvecHeures.filter(arret => 
         arret.nom !== ligneSelectionnee.depart && 
         arret.nom !== ligneSelectionnee.arrivee
-      ),
-    });
-};
-  // Improved calculateArrivalTime function
+      )
+    }));
+  };
+
   const calculateArrivalTime = (departTime, duration) => {
     if (!departTime || !duration) return "";
     
     try {
-      // Convertir la durée en minutes
       let totalDurationMinutes = 0;
       
-      // Format "HH:MM" ou "HHhMM"
       if (duration.includes(':') || duration.includes('h')) {
         const normalizedDuration = duration.replace('h', ':');
         const [hours, minutes] = normalizedDuration.split(':').map(Number);
         totalDurationMinutes = (hours || 0) * 60 + (minutes || 0);
-      } 
-      // Format "X min"
-      else if (duration.includes('min')) {
+      } else if (duration.includes('min')) {
         totalDurationMinutes = parseInt(duration) || 0;
-      }
-      // Format numérique seul (en minutes)
-      else {
+      } else {
         totalDurationMinutes = parseInt(duration) || 0;
       }
   
-      // Parser l'heure de départ
       const [departHours, departMinutes] = departTime.split(':').map(Number);
-  
-      // Calculer le total en minutes
       let totalMinutes = departHours * 60 + departMinutes + totalDurationMinutes;
-      
-      // Gérer le dépassement de minuit
       totalMinutes = totalMinutes % (24 * 60);
       
-      // Convertir en format HH:MM
       const arriveeHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
       const arriveeMinutes = (totalMinutes % 60).toString().padStart(2, '0');
       
@@ -233,108 +261,82 @@ const TrajetAdmin = () => {
       return "";
     }
   };
-  // Calculer la durée lorsque l'heure de départ change
+
   const handleHeureDepartChange = (e) => {
-    const newHeureDepart = e.target.value;
-    
-    if (!selectedLigne?.duree) {
-      setFormData(prev => ({
-        ...prev,
-        heureDepart: newHeureDepart,
-        heureArrivee: ""
-      }));
-      return;
-    }
-    
-    // Calculer la nouvelle heure d'arrivée
-    const heureArrivee = calculateArrivalTime(newHeureDepart, selectedLigne.duree);
-    
-    // Recalculer les heures des arrêts intermédiaires
-    const calculateStopTimes = (departTime, stops) => {
-      if (!stops || stops.length < 2) return [];
-      
-      let currentTime = new Date(`1970-01-01T${departTime}:00`);
-      const stopTimes = [];
-      
-      for (let i = 0; i < stops.length - 1; i++) {
-        const stop = stops[i];
-        const durationMinutes = parseInt(stop.duree) || 0;
-        
-        currentTime.setMinutes(currentTime.getMinutes() + durationMinutes);
-        
-        const hours = currentTime.getHours().toString().padStart(2, '0');
-        const minutes = currentTime.getMinutes().toString().padStart(2, '0');
-        
-        stopTimes.push({
-          nom: stop.name,
-          heure: `${hours}:${minutes}`
-        });
-      }
-      
-      return stopTimes;
-    };
-
-    const arretsAvecHeures = selectedLigne.stops 
-      ? calculateStopTimes(newHeureDepart, selectedLigne.stops)
-      : [];
-
+  const newHeureDepart = e.target.value;
+  
+  if (!selectedLigne?.duree || !selectedLigne?.stops) {
     setFormData(prev => ({
       ...prev,
       heureDepart: newHeureDepart,
-      heureArrivee: heureArrivee,
-      duree: selectedLigne.duree,
-      arretsIntermediaires: arretsAvecHeures
+      heureArrivee: "",
+      arretsIntermediaires: []
     }));
-  };
+    return;
+  }
+  
+  // Calculer l'heure d'arrivée finale
+  const heureArrivee = calculateArrivalTime(newHeureDepart, selectedLigne.duree);
+  
+  // Calculer les heures des arrêts intermédiaires
+  const arretsAvecHeures = calculateStopTimes(newHeureDepart, selectedLigne.stops);
 
-  // Sauvegarder le trajet
-  const handleSaveTrajet = async () => {
+  setFormData(prev => ({
+    ...prev,
+    heureDepart: newHeureDepart,
+    heureArrivee,
+    arretsIntermediaires: arretsAvecHeures
+  }));
+};
+
+ const handleSaveTrajet = async () => {
   try {
+    // 1. Validation des données
     if (!selectedLigne) {
       throw new Error('Veuillez sélectionner une ligne');
     }
 
-    const validateTime = (time) => {
-      if (!time) return false;
-      return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
-    };
-
-    if (!validateTime(formData.heureDepart) || !validateTime(formData.heureArrivee)) {
-      throw new Error('Format de temps invalide. Utilisez HH:MM (ex: 08:00 ou 8:00)');
+    // Validation du format des heures
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(formData.heureDepart) || !timeRegex.test(formData.heureArrivee)) {
+      throw new Error('Format de temps invalide. Utilisez HH:MM (ex: 08:00)');
     }
 
-    const formatTime = (time) => {
-      const [hours, minutes] = time.split(':');
-      return `${hours.padStart(2, '0')}:${minutes}`;
-    };
-
-    const nouveauTrajet = {
+    // 2. Préparation des données du trajet principal
+    const trajetData = {
       ligne_id: selectedLigne.id,
       ligne_number: selectedLigne.number,
       depart: formData.depart,
       arrivee: formData.arrivee,
       jours: formData.jours.join(', '),
-      heure_depart: formatTime(formData.heureDepart),
-      heure_arrivee: formatTime(formData.heureArrivee),
+      heure_depart: formData.heureDepart,
+      heure_arrivee: formData.heureArrivee,
       duree: formData.duree,
       chauffeur: formData.chauffeur,
       vehicule: formData.vehicule,
       statut: formData.statut,
       arrets: formData.arretsIntermediaires,
-      date_debut: formData.dateDebut,
-      date_fin: formData.dateFin,
-      active_dates: formData.activeDates.map(formatDateToISO),
+      date_debut: formData.dateDebut || null,
+      date_fin: formData.dateFin || null,
+      active_dates: formData.activeDates.map(date => date.toISOString().split('T')[0]),
       numero_chauffeur: formData.telephone || '',
-      nombre_places:  parseInt(formData.places) || 0 
+      nombre_places: parseInt(formData.places) || 0,
+      sens: formData.sens
     };
 
-    const response = await fetch('http://localhost:5000/api/trajets', {
-      method: 'POST',
+    // 3. Envoi du trajet principal
+    const method = editingTrajetId ? 'PUT' : 'POST';
+    const url = editingTrajetId 
+      ? `http://localhost:5000/api/trajets/${editingTrajetId}`
+      : 'http://localhost:5000/api/trajets';
+
+    const response = await fetch(url, {
+      method,
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      body: JSON.stringify(nouveauTrajet)
+      body: JSON.stringify(trajetData)
     });
 
     if (!response.ok) {
@@ -342,17 +344,83 @@ const TrajetAdmin = () => {
       throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
     }
 
-    const savedTrajet = await response.json();
-    setTrajetsReguliers([...trajetsReguliers, savedTrajet]);
+    // 4. Création du retour SI nécessaire (uniquement pour nouveaux trajets aller)
+if (!editingTrajetId && formData.createReturn && formData.sens === 'aller') {
+  const trajetPrincipal = await response.json();
+  
+  // Création des arrêts inversés pour le retour avec les mêmes heures de base
+  const createReturnStops = (originalStops, departTime, arriveTime) => {
+    if (!originalStops || originalStops.length === 0) {
+      return [];
+    }
+    
+    // Creer une copie des arrêts originaux et les inverser
+    const reversedStops = [...originalStops].reverse();
+    
+    // Garder les mêmes heures mais en ordre inverse
+    // Vous pourrez modifier ces heures plus tard dans l'interface
+    return reversedStops.map(stop => ({
+      nom: stop.nom,
+      heure: stop.heure // On garde les heures pour que vous puissiez les modifier manuellement
+    }));
+  };
+  
+  const arretsRetour = createReturnStops(
+    formData.arretsIntermediaires, 
+    formData.heureDepart, 
+    formData.heureArrivee
+  );
+  
+  // Préparation des données du trajet retour (avec arrêts inversés)
+  const trajetRetourData = {
+    ...trajetData,
+    depart: formData.arrivee, // Inversion départ/arrivée
+    arrivee: formData.depart,
+    heure_depart: formData.heureDepart, // Gardez les heures originales
+    heure_arrivee: formData.heureArrivee,
+    arrets: arretsRetour, // Arrêts inversés avec heures à modifier
+    sens: 'retour'
+  };
+
+  // Envoi du trajet retour
+  const retourResponse = await fetch('http://localhost:5000/api/trajets', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    },
+    body: JSON.stringify(trajetRetourData)
+  });
+
+  if (!retourResponse.ok) {
+    throw new Error('Erreur lors de la création du trajet retour');
+  }
+
+  const trajetRetour = await retourResponse.json();
+
+  alert(`Trajet aller (ID: ${trajetPrincipal.trajet.id}) et retour (ID: ${trajetRetour.trajet.id}) créés avec succès ! Vous pouvez maintenant modifier les heures du trajet retour.`);
+} else {
+  // Message pour les autres cas
+  const result = await response.json();
+  alert(editingTrajetId 
+    ? "Trajet mis à jour avec succès !" 
+    : `Trajet créé avec succès ! (ID: ${result.trajet.id})`);
+}
+
+    // 5. Mise à jour de la liste des trajets
+    const trajetsResponse = await fetch('http://localhost:5000/api/trajets');
+    const trajetsData = await trajetsResponse.json();
+    setTrajetsReguliers(trajetsData);
+
+    // 6. Réinitialisation du formulaire
     handleCancelForm();
-    alert("Trajet régulier ajouté avec succès !");
+
   } catch (error) {
-    console.error("Erreur:", error);
-    alert(`Erreur lors de la sauvegarde du trajet: ${error.message}`);
+    console.error("Erreur lors de la sauvegarde:", error);
+    alert(`Erreur: ${error.message}`);
   }
 };
-    
-    // Fonction pour supprimer un trajet
+
   const handleDeleteTrajet = async (trajetId) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce trajet ?")) {
       return;
@@ -371,7 +439,6 @@ const TrajetAdmin = () => {
         throw new Error('Erreur lors de la suppression');
       }
 
-      // Mettre à jour la liste des trajets
       setTrajetsReguliers(trajetsReguliers.filter(trajet => trajet.id !== trajetId));
       alert("Trajet supprimé avec succès !");
     } catch (error) {
@@ -382,157 +449,109 @@ const TrajetAdmin = () => {
     }
   };
 
-  // Fonction pour éditer un trajet
-  const handleEditTrajet = (trajet) => {
-    setEditingTrajetId(trajet.id);
-    setSelectedLigne(lignes.find(l => l.id === trajet.ligne_id));
-    setShowAddRegularForm(true);
-    
-    const formatDateForInput = (date) => {
-    if (!date) return "";
-    // Si la date est déjà au format YYYY-MM-DD (PostgreSQL)
-    if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return date;
-    }
-    // Si la date est un objet Date ou ISO string
-    return new Date(date).toISOString().split('T')[0];
-  };
-    // Convertir les dates actives de string à Date si nécessaire
-    const activeDates = trajet.active_dates 
-      ? trajet.active_dates.map(dateStr => new Date(dateStr))
-      : [];
-
-    setFormData({
-      ligne: `N°${trajet.ligne_number}`,
-      depart: trajet.depart,
-      arrivee: trajet.arrivee,
-      jours: trajet.jours.split(',').map(j => j.trim()),
-      heureDepart: trajet.heure_depart,
-      heureArrivee: trajet.heure_arrivee,
-      duree: trajet.duree,
-      chauffeur: trajet.chauffeur,
-      vehicule: trajet.vehicule,
-      telephone: trajet.telephone || '',
-      places: trajet.places || '',
-      statut: trajet.statut,
-      arretsIntermediaires: Array.isArray(trajet.arrets) ? trajet.arrets : [],
-      remarques: trajet.remarques || "",
-      dateDebut: formatDateForInput(trajet.date_debut), 
-      dateFin: formatDateForInput(trajet.date_fin),   
-      activeDates: activeDates,
-       telephone: trajet.numero_chauffeur || '', 
-      places: trajet.nombre_places || ''     
-    });
-  };
-
-  // Fonction pour mettre à jour un trajet
-  const handleUpdateTrajet = async () => {
+ const handleEditTrajet = async (trajet) => {
   try {
-    if (!selectedLigne) {
-      throw new Error('Veuillez sélectionner une ligne');
-    }
-
-    const formatTime = (time) => {
-      if (!time) return "";
-      let [hours, minutes] = time.split(':').map(part => parseInt(part, 10));
-      if (isNaN(hours)) hours = 0;
-      if (isNaN(minutes)) minutes = 0;
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    };
-
-    const formattedHeureDepart = formatTime(formData.heureDepart);
-    const formattedHeureArrivee = formatTime(formData.heureArrivee);
+    setLoading(true);
     
-    if (!formattedHeureDepart || !formattedHeureArrivee) {
-      throw new Error('Format de temps invalide. Utilisez HH:MM (ex: 08:00 ou 8:00)');
+    // 1. Récupération du trajet avec gestion améliorée des erreurs
+    let trajetData;
+    try {
+      trajetData = await fetchTrajet(trajet.id);
+    } catch (error) {
+      console.error("Erreur lors de la récupération du trajet:", error);
+      throw new Error(`Échec du chargement du trajet: ${error.message}`);
+    }
+    
+    // 2. Trouver la ligne associée
+    const ligne = lignes.find(l => l.id === trajetData.ligne_id);
+    if (!ligne) {
+      throw new Error('Ligne associée non trouvée');
     }
 
-    const updatedTrajet = {
-      ligne_id: selectedLigne.id,
-      ligne_number: selectedLigne.number,
-      depart: formData.depart,
-      arrivee: formData.arrivee,
-      jours: formData.jours.join(', '),
-      heure_depart: formattedHeureDepart,
-      heure_arrivee: formattedHeureArrivee,
-      duree: formData.duree,
-      chauffeur: formData.chauffeur,
-      vehicule: formData.vehicule,
-      statut: formData.statut,
-      arrets: formData.arretsIntermediaires,
-      remarques: formData.remarques || '',
-      date_debut: formData.dateDebut,
-      date_fin: formData.dateFin,
-      active_dates: formData.activeDates.map(formatDateToISO)
+    // 3. Conversion des données
+    const safeParse = (data) => {
+      if (!data) return data;
+      try {
+        return typeof data === 'string' ? JSON.parse(data) : data;
+      } catch {
+        return data;
+      }
     };
 
-    const trajetId = editingTrajetId;
-    if (!trajetId) {
-      throw new Error('Trajet non trouvé pour la mise à jour');
-    }
+    // Fonction pour formater la date au format YYYY-MM-DD
+    const formatDateForInput = (dateStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0];
+    };
 
-    const response = await fetch(`http://localhost:5000/api/trajets/${trajetId}`, {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(updatedTrajet)
+    // 4. Mise à jour du state
+    setFormData({
+      ligne: `N°${trajetData.ligne_number}`,
+      depart: trajetData.depart,
+      arrivee: trajetData.arrivee,
+      jours: typeof trajetData.jours === 'string' 
+        ? trajetData.jours.split(',').map(j => j.trim())
+        : trajetData.jours || [],
+      heureDepart: trajetData.heure_depart,
+      heureArrivee: trajetData.heure_arrivee,
+      duree: trajetData.duree || "0 min",
+      chauffeur: trajetData.chauffeur || "",
+      vehicule: trajetData.vehicule || "",
+      statut: trajetData.statut || "Actif",
+      arretsIntermediaires: safeParse(trajetData.arrets) || [],
+      dateDebut: formatDateForInput(trajetData.date_debut),
+      dateFin: formatDateForInput(trajetData.date_fin),
+      activeDates: trajetData.active_dates 
+        ? safeParse(trajetData.active_dates).map(date => new Date(date)) 
+        : [],
+      telephone: trajetData.numero_chauffeur || '',
+      places: trajetData.nombre_places || '',
+      sens: trajetData.sens || 'aller',
+      createReturn: false // Désactivé en mode édition
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erreur lors de la mise à jour');
-    }
+    setEditingTrajetId(trajet.id);
+    setSelectedLigne(ligne);
+    setShowAddRegularForm(true);
 
-    const updatedData = await response.json();
-    
-    setTrajetsReguliers(trajetsReguliers.map(t => 
-      t.id === updatedData.id ? updatedData : t
-    ));
-    
-    handleCancelForm();
-    alert("Trajet mis à jour avec succès !");
   } catch (error) {
-    console.error("Erreur:", error);
-    alert(`Erreur lors de la mise à jour du trajet: ${error.message}`);
+    console.error("Erreur dans handleEditTrajet:", error);
+    alert(`Erreur lors de l'édition: ${error.message}`);
+  } finally {
+    setLoading(false);
   }
 };
+
   const handleCancelForm = () => {
-  setEditingTrajetId(null);
-  setShowAddRegularForm(false);
-  setShowAddPonctualForm(false);
-  setSelectedLigne(null);
-  setFormData({
-    ligne: "",
-    depart: "",
-    arrivee: "",
-    jours: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi"],
-    heureDepart: "08:00",
-    heureArrivee: "08:30",
-    duree: "0 min",
-    chauffeur: "",
-    vehicule: "",
-    statut: "Actif",
-    arretsIntermediaires: [],
-    remarques: "",
-    dateDebut: "",
-    dateFin: "",
-    activeDates: [] // Reset to empty array
-  });
-};
-
-  const handleAddRegularTrajet = () => {
-    setShowAddRegularForm(true);
-    setShowAddPonctualForm(false);
-  };
-
-  const handleAddPonctualTrajet = () => {
-    setShowAddPonctualForm(true);
+    setEditingTrajetId(null);
+    setEditingReturnId(null);
     setShowAddRegularForm(false);
+    setShowAddPonctualForm(false);
+    setSelectedLigne(null);
+    setFormData({
+      ligne: "",
+      depart: "",
+      arrivee: "",
+      jours: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi"],
+      heureDepart: "08:00",
+      heureArrivee: "08:30",
+      duree: "0 min",
+      chauffeur: "",
+      vehicule: "",
+      statut: "Actif",
+      arretsIntermediaires: [],
+      dateDebut: "",
+      dateFin: "",
+      activeDates: [],
+      telephone: "",
+      places: "",
+      sens: 'aller',
+      createReturn: true
+    });
   };
 
-  // Fonction pour calculer les dates actives entre deux dates pour des jours spécifiques
   const calculateDates = (startDateStr, endDateStr, daysOfWeek) => {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
@@ -554,10 +573,6 @@ const TrajetAdmin = () => {
     return activeDates;
   };
 
-  // Fonction pour formater les dates en ISO (YYYY-MM-DD)
-  const formatDateToISO = (date) => {
-    return date.toISOString().split('T')[0];
-  };
   const TrajetsList = () => (
     <>
       <div className="trjt-search-bar">
@@ -619,10 +634,16 @@ const TrajetAdmin = () => {
       </div>
 
       <div className="trjt-action-buttons">
-        <button className="trjt-btn trjt-btn-orange" onClick={handleAddRegularTrajet}>
+        <button className="trjt-btn trjt-btn-orange" onClick={() => {
+          setShowAddRegularForm(true);
+          setShowAddPonctualForm(false);
+        }}>
           <FontAwesomeIcon icon={faPlus} /> Ajouter un trajet régulier
         </button>
-        <button className="trjt-btn trjt-btn-green" onClick={handleAddPonctualTrajet}>
+        <button className="trjt-btn trjt-btn-green" onClick={() => {
+          setShowAddPonctualForm(true);
+          setShowAddRegularForm(false);
+        }}>
           <FontAwesomeIcon icon={faPlus} /> Ajouter un trajet ponctuel
         </button>
         <button className="trjt-btn trjt-btn-gray">
@@ -655,7 +676,7 @@ const TrajetAdmin = () => {
               .filter(trajet => trajet.ligne_id !== null)
               .map((trajet) => (
                 <tr className="trjt-tr" key={trajet.id}>
-                  <td className="trjt-td">N°{trajet.ligne_number}</td>
+                  <td className="trjt-td">N°{trajet.ligne_number} ({trajet.sens === 'aller' ? 'Aller' : 'Retour'})</td>
                   <td className="trjt-td">{trajet.depart}</td>
                   <td className="trjt-td">{trajet.arrivee}</td>
                   <td className="trjt-td">{trajet.jours}</td>
@@ -691,12 +712,46 @@ const TrajetAdmin = () => {
       <div className="trjt-breadcrumb">
         <span className="trjt-breadcrumb-link" onClick={handleCancelForm}>Trajets</span>
         <span className="trjt-separator">&gt;</span>
-        <span className="trjt-current">Ajouter un trajet régulier</span>
+        <span className="trjt-current">
+          {editingTrajetId ? "Modifier un trajet" : "Ajouter un trajet régulier"}
+        </span>
       </div>
 
       <div className="trjt-form-section">
         <div className="trjt-form-section-title">Informations générales</div>
-        
+        <div className="trjt-form-row">
+          <div className="trjt-form-group">
+            <label htmlFor="sens">Sens du trajet</label>
+            <select 
+              id="sens" 
+              value={formData.sens}
+              onChange={(e) => {
+                const newSens = e.target.value;
+                setFormData({
+                  ...formData,
+                  sens: newSens,
+                  createReturn: newSens === 'aller' && formData.createReturn
+                });
+              }}
+              disabled={editingTrajetId}
+            >
+              <option value="aller">Aller</option>
+              <option value="retour">Retour</option>
+            </select>
+          </div>
+          
+          {formData.sens === 'aller' && !editingTrajetId && (
+  <div className="trjt-form-group trjt-checkbox-container">
+    <input
+      type="checkbox"
+      id="createReturn"
+      checked={formData.createReturn}
+      onChange={(e) => setFormData({...formData, createReturn: e.target.checked})}
+    />
+    <label htmlFor="createReturn">Créer automatiquement le trajet retour</label>
+  </div>
+)}
+        </div>
         <div className="trjt-form-row">
           <div className="trjt-form-group">
             <label htmlFor="line">Ligne</label>
@@ -740,8 +795,8 @@ const TrajetAdmin = () => {
           <div className="trjt-form-group">
             <label>Jours de service</label>
             <div className="trjt-checkbox-group">
-              {[ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map((jour, index) => (
-                <div className="trjt-checkbox-item" key={index}>
+              {["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map((jour) => (
+                <div className="trjt-checkbox-item" key={jour}>
                   <input 
                     type="checkbox" 
                     id={jour.toLowerCase()} 
@@ -800,23 +855,23 @@ const TrajetAdmin = () => {
           </div>
         </div>
 
-        {formData.activeDates && formData.activeDates.length > 0 && (
-  <div className="trjt-form-group">
-    <label>Dates de circulation:</label>
-    <div className="trjt-dates-list">
-      {formData.activeDates.slice(0, 10).map((date, index) => (
-        <span key={index} className="trjt-date-badge">
-          {date.toLocaleDateString('fr-FR')}
-        </span>
-      ))}
-      {formData.activeDates.length > 10 && (
-        <span className="trjt-date-more">
-          +{formData.activeDates.length - 10} autres
-        </span>
-      )}
-    </div>
-  </div>
-)}
+        {formData.activeDates.length > 0 && (
+          <div className="trjt-form-group">
+            <label>Dates de circulation:</label>
+            <div className="trjt-dates-list">
+              {formData.activeDates.slice(0, 10).map((date, index) => (
+                <span key={index} className="trjt-date-badge">
+                  {date.toLocaleDateString('fr-FR')}
+                </span>
+              ))}
+              {formData.activeDates.length > 10 && (
+                <span className="trjt-date-more">
+                  +{formData.activeDates.length - 10} autres
+                </span>
+              )}
+            </div>
+          </div>
+        )}
         <div className="trjt-form-row">
           <div className="trjt-form-group">
             <label htmlFor="heure_depart">Heure de départ</label>
@@ -852,7 +907,6 @@ const TrajetAdmin = () => {
         <div className="trjt-form-section-title">Arrêts intermédiaires</div>
         
         <div className="trjt-stops-container">
-          {/* Affichage du point de départ */}
           <div className="trjt-stop-item">
             <div className="trjt-stop-num">D</div>
             <div className="trjt-form-group" style={{ flex: 3 }}>
@@ -871,7 +925,6 @@ const TrajetAdmin = () => {
             </div>
           </div>
 
-          {/* Affichage des arrêts intermédiaires avec heures calculées */}
           {formData.arretsIntermediaires.map((arret, index) => (
             <div className="trjt-stop-item" key={index}>
               <div className="trjt-stop-num">{index + 1}</div>
@@ -892,7 +945,6 @@ const TrajetAdmin = () => {
             </div>
           ))}
 
-          {/* Affichage du point d'arrivée */}
           {formData.arretsIntermediaires.length > 0 && (
             <div className="trjt-stop-item">
               <div className="trjt-stop-num">A</div>
@@ -966,11 +1018,11 @@ const TrajetAdmin = () => {
         </button>
         <button 
           className="trjt-btn trjt-btn-primary" 
-          onClick={trajetsReguliers.some(t => t.ligne_id === selectedLigne?.id && t.heure_depart === formData.heureDepart) ? handleUpdateTrajet : handleSaveTrajet}
+          onClick={handleSaveTrajet}
           disabled={!selectedLigne || !formData.chauffeur || !formData.vehicule}
         >
           <FontAwesomeIcon icon={faSave} /> 
-          {trajetsReguliers.some(t => t.ligne_id === selectedLigne?.id && t.heure_depart === formData.heureDepart) ? "Mettre à jour" : "Enregistrer"}
+          {editingTrajetId ? "Mettre à jour" : "Enregistrer"}
         </button>
       </div>
     </div>

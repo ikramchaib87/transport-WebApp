@@ -12,7 +12,7 @@
   border: 1px solid #ff9100;
   border-radius: 8px;
   padding: 15px;
-  width: 450px;
+  width: 500px;
   background-color: #ffffff;
   box-shadow: none;
   min-height: 140px;
@@ -37,7 +37,7 @@
 .time-container {
   display: flex;
   align-items: center;
-  margin: 20px 0;
+  margin: 15px 0;
   padding: 15px 0;
 }
 
@@ -76,7 +76,7 @@
   right: 0;
 }
 
-.details-link {
+.details-link p {
   display: block;
   color: #ff8800;
   text-decoration: none;
@@ -88,6 +88,7 @@
 
 .details-link:hover {
   text-decoration: underline;
+  color: #ff8800;
 }
 
 /* Section headings */

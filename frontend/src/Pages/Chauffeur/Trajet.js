@@ -7,11 +7,16 @@ const Trajet = () => {
   
 
   return (
-    <div >
-      <Header />
-      <div>
-        <Navbar />
-       
+   <div>
+     <Header />
+     <div className="add">
+           <Navbar />
+           <div className="cart-container">
+             <div className="emp-carte-title">
+               <h2>Trajet</h2>
+               <div className="emp-red-dot"></div>
+             </div>
+       </div>
       </div>
     </div>
   );
