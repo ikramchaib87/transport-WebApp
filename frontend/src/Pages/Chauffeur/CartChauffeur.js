@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import Navbar from '../../components/Navbar';
 import Header from "../../components/Header";
 import "./CartChauffeur.css";
-import Logot from "../../icons/logot.png";
+import Logot from "../../icons/logo.png";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import html2canvas from 'html2canvas';

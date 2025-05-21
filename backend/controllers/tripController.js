@@ -308,3 +308,4 @@ exports.getTrajetById = async (req, res) => {
     client.release();
   }
 };
+//for bouchra 

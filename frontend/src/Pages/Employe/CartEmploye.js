@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Navbar from '../../components/Navbar';
 import Header from "../../components/Header";
 import "./CartEmploye.css";
-import Logot from "../../icons/logot.png";
+import Logot from "../../icons/logo.png";
 import axios from "axios";
 import html2canvas from 'html2canvas';
 const CartEmploye = () => {
