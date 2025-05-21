@@ -76,7 +76,6 @@ const Navbar = () => {
       return [
         { name: "Tableau de bord", path: "/AdminRoutes/Tableaudebord", icon: <LayoutDashboard /> },
         { name: "Administrateurs", path: "/AdminRoutes/Administrateurs", icon: <Users /> },
-        { name: "Suivi", path: "/AdminRoutes/Suivi", icon: <MapPin /> },
         { name: "Employes", path: "/AdminRoutes/Employes", icon: <User /> },
         { name: "Transport Interne", path: "#", icon: <Bus />, hasSubmenu: true },
         { name: "Transport Externe", path: "/AdminRoutes/TransportExterne", icon: <Bus /> },
@@ -88,7 +87,6 @@ const Navbar = () => {
     } else if (isSousAdmin) {
       return [
         { name: "Tableau de bord", path: "/SousAdminRoutes/Tableaudebord", icon: <LayoutDashboard /> },
-        { name: "Suivi", path: "/SousAdminRoutes/Suivi", icon: <MapPin /> },
         { name: "Employes", path: "/SousAdminRoutes/Employes", icon: <User /> },
         { name: "Transport Interne", path: "#", icon: <Bus />, hasSubmenu: true },
         { name: "Transport Externe", path: "/SousAdminRoutes/TransportExterne", icon: <Bus /> },

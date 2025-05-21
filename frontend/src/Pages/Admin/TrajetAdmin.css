@@ -300,6 +300,7 @@
   border: 1px solid #eee;
   border-radius: 5px;
   overflow: hidden;
+  overflow-anchor: none;
 }
 
 .trjt-form-section-title {
@@ -342,11 +343,6 @@
   border: 1px solid #ddd;
   border-radius: 3px;
   font-size: 14px;
-}
-
-.trjt-form-group textarea {
-  min-height: 100px;
-  resize: vertical;
 }
 
 .trjt-form-group input[readonly] {
@@ -671,4 +667,25 @@
     text-align: center;
     margin-bottom: 20px;
   }
+}
+
+/* Dans TrajetAdmin.css */
+.trjt-dates-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.trjt-date-badge {
+  background-color: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.trjt-date-more {
+  color: #666;
+  font-size: 12px;
+  align-self: center;
 }

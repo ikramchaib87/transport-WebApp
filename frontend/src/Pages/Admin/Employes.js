@@ -2,162 +2,216 @@ import React, { useState, useEffect } from "react";
 import "./Administrateurs.css";
 import Navbar from "../../components/Navbar";
 import Header from "../../components/Header";
-import Delete from "../../icons/delete.png";
-import edit from "../../icons/edit.png";
+import viewDetails from "../../icons/view.png";
 import search from "../../icons/search.png";
-
 const EmplyTable = () => {
     const [employes, setEmployes] = useState([]);
     const [filteredEmployes, setFilteredEmployes] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
+    const [selectedEmploye, setSelectedEmploye] = useState(null);
     
-    // Fonction pour récupérer les employés depuis LDAP
     useEffect(() => {
-        const fetchEmployesFromLDAP = async () => {
+        const fetchEmployes = async () => {
             try {
                 setLoading(true);
-                // Appel à notre API - vous devrez créer cette route dans votre backend
-                const response = await fetch('http://localhost:5000/api/employes');
-                const data = await response.json();
+                const res = await fetch('http://localhost:5000/api/employes');
+                const { success, employes } = await res.json();
                 
-                if (data.success && Array.isArray(data.employes)) {
-                    setEmployes(data.employes);
-                    setFilteredEmployes(data.employes);
-                } else {
-                    console.error("Erreur de l'API:", data.message);
-                    setEmployes([]);
-                    setFilteredEmployes([]);
+                if (success) {
+                    setEmployes(employes);
+                    setFilteredEmployes(employes);
                 }
             } catch (error) {
-                console.error("Erreur lors de la récupération des données LDAP:", error);
-                setEmployes([]);
-                setFilteredEmployes([]);
+                console.error("Erreur:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchEmployesFromLDAP();
+        fetchEmployes();
     }, []);
 
-    // Fonction de recherche
-    const handleSearch = (e) => {
-        const term = e.target.value.toLowerCase();
+    const handleSearch = (term) => {
         setSearchTerm(term);
-        
-        if (term.trim() === '') {
-            setFilteredEmployes(employes || []);
+        if (!term) {
+            setFilteredEmployes(employes);
             return;
         }
         
-        if (!Array.isArray(employes)) {
-            setFilteredEmployes([]);
-            return;
-        }
-        
-        const filtered = employes.filter(employe => 
-            (employe.nom && employe.nom.toLowerCase().includes(term)) || 
-            (employe.prenom && employe.prenom.toLowerCase().includes(term)) ||
-            (employe.matricule && employe.matricule.toLowerCase().includes(term)) ||
-            (employe.email && employe.email.toLowerCase().includes(term))
+        const filtered = employes.filter(e =>
+            [e.nom, e.prenom, e.ldap_id, e.email, e.commune, e.wilaya, e.line_name]
+                .some(field => field?.toLowerCase().includes(term.toLowerCase()))
         );
-        
         setFilteredEmployes(filtered);
     };
 
-    // Fonction pour déterminer la classe CSS en fonction du statut
-    const getStatusClass = (status) => {
-        if (!status) return "";
-        
-        switch(status.toLowerCase()) {
-            case 'actif':
-                return "status-active";
-            case 'inactif':
-            case 'désactivé':
-                return "status-inactive";
-            default:
-                return "";
-        }
-    };
-    
-    // Ensure employes and filteredEmployes are always arrays
-    const safeEmployes = Array.isArray(employes) ? employes : [];
-    const safeFilteredEmployes = Array.isArray(filteredEmployes) ? filteredEmployes : [];
-    
     return (
-        <div>
+        <div >
             <Header/> 
             <div className="ad">
                 <Navbar/>
                 <div className="ad-container">
-                    <h2 className="title"> <span className="underline">Employés</span> </h2>
-                    <br />
-                    <p className="total">nombre total : <span className="count">{safeEmployes.length}</span></p>
-                    
+                   <h2 className="title"> <span className="underline">Employes</span> </h2>
+                      <br />
+                <p className="total">nombre total : <span className="count">{employes.length}</span></p>
+                
                     <div className="search-bar">
-                        <input 
-                            type="text" 
-                            placeholder="Search" 
-                            value={searchTerm}
-                            onChange={handleSearch}
-                        />
-                        <button> 
-                            <img src={search} alt="" />
-                        </button>
-                    </div>
-                    
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Nom</th>
-                                <th>Prénom</th>
-                                <th>Matricule</th>
-                                <th>Email</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                // Afficher des lignes vides pendant le chargement
-                                Array(10).fill(null).map((_, index) => (
-                                    <tr key={`loading-${index}`} className={index % 2 === 0 ? "gray-row" : ""}>
-                                        <td>—</td>
-                                        <td>—</td>
-                                        <td>—</td>
-                                        <td>—</td>
-                                        <td>—</td>
-                                        <td><img src={edit} alt="" /><img src={Delete} alt="" /></td>
-                                    </tr>
-                                ))
-                            ) : safeFilteredEmployes.length > 0 ? (
-                                // Afficher les données des employés
-                                safeFilteredEmployes.map((employe, index) => (
-                                    <tr key={employe?.id || `employe-${index}`} className={index % 2 === 0 ? "gray-row" : ""}>
-                                        <td>{employe?.nom || "—"}</td>
-                                        <td>{employe?.prenom || "—"}</td>
-                                        <td>{employe?.matricule || "—"}</td>
-                                        <td>{employe?.email || "—"}</td>
-                                        <td className={getStatusClass(employe?.statut)}>{employe?.statut || "—"}</td>
-                                        <td>
-                                            <img src={edit} alt="" />
-                                            <img src={Delete} alt="" />
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                // Message si aucun employé trouvé
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search" 
+                                            value={searchTerm}
+                                            onChange={handleSearch}
+                                        />
+                                        <button>
+                                            <img src={search} alt="Rechercher" />
+                                        </button>
+                                    </div>
+
+
+                   
+                         <table className="admin-table">
+                            <thead>
                                 <tr>
-                                    <td colSpan="6" style={{textAlign: "center"}}>Aucun employé trouvé</td>
+                                    <th>Matricule</th>
+                                    <th>Nom</th>
+                                    <th>Prénom</th>
+                                    <th>Commune/Wilaya</th>
+                                    <th>Ligne</th>
+                                    <th>Actions</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="7" className="loading">Chargement...</td>
+                                    </tr>
+                                ) : filteredEmployes.length > 0 ? (
+                                    filteredEmployes.map((e, i) => (
+                                        <tr key={e.ldap_id} className={i % 2 ? 'even' : 'odd'}>
+                                        
+                                            <td>{e.ldap_id}</td>
+                                            <td>{e.nom}</td>
+                                            <td>{e.prenom}</td>
+                                            <td>
+                                                <div>{e.commune} / {e.wilaya}</div>
+                                                
+                                            </td>
+                                            <td>
+                                            {e.line_number 
+                                            ? `Ligne ${e.line_number} - ${e.line_name}`
+                                            : '-'}
+                                            {e.stop_name &&  (
+  
+                                            <small> Arrêt: {e.stop_name}</small>
+  
+                                            )}
+                                             </td>
+                                             <td className="action-buttons"> 
+                                                <img 
+                                                src={viewDetails} 
+                                                alt="Voir détails" 
+                                                title="Voir les détails"
+                                                onClick={() => setSelectedEmploye(e)}
+                                                />
+                                                
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="7">Aucun employé trouvé</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+
+
+                    {/* Modal des détails */}
+                    {selectedEmploye && (
+                        <div className="modal-overlay">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h3>Détails de l'employé</h3>
+                                    <button 
+                                        className="close-btn"
+                                        onClick={() => setSelectedEmploye(null)}
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="employe-details">
+                                        <div className="photo-section">
+                                            {selectedEmploye.photo_url ? (
+                                                <img 
+                                                    src={`http://localhost:5000${selectedEmploye.photo_url}`} 
+                                                    alt={`${selectedEmploye.nom} ${selectedEmploye.prenom}`}
+                                                    className="detail-photo"
+                                                />
+                                            ) : (
+                                                <div className="photo-placeholder large">
+                                                    {selectedEmploye.nom.charAt(0)}{selectedEmploye.prenom.charAt(0)}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="info-section">
+                                            <div className="info-row">
+                                                <span className="label">Matricule:</span>
+                                                <span>{selectedEmploye.ldap_id}</span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Nom:</span>
+                                                <span>{selectedEmploye.nom} {selectedEmploye.prenom}</span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Email:</span>
+                                                <span>{selectedEmploye.email}</span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Téléphone:</span>
+                                                <span>{selectedEmploye.telephone || '-'}</span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Adresse:</span>
+                                                <span>{selectedEmploye.adresse || '-'}</span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Localité:</span>
+                                                <span>
+                                                    {selectedEmploye.commune || '-'} / {selectedEmploye.wilaya || '-'}
+                                                </span>
+                                            </div>
+                                            <div className="info-row">
+                                            <span className="label">Arrêt attribué:</span>
+                                            <span>
+                                            {selectedEmploye.stop_name 
+                                            ? `${selectedEmploye.stop_name} `
+                                            : 'Aucun arrêt spécifié'}
+                                            </span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Fonction:</span>
+                                                <span>{selectedEmploye.fonction || '-'}</span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Poste:</span>
+                                                <span>{selectedEmploye.post || '-'}</span>
+                                            </div>
+                                            <div className="info-row">
+                                                <span className="label">Affectation:</span>
+                                                <span>{selectedEmploye.affectation || '-'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
 };
-  
+
 export default EmplyTable;

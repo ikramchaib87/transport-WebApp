@@ -27,10 +27,21 @@ const Demande = () => {
     success: false
   });
 
-  // Calculer les statistiques - En utilisant useCallback pour éviter les recréations
+  // État pour la vérification
+  const [verificationStatus, setVerificationStatus] = useState({
+    loading: false,
+    error: null,
+    verified: false,
+    lineExists: false,
+    placesDisponibles: false,
+    vehiculeDisponible: null,
+    typeTransport: null,
+    remarque: ''
+  });
+
+  // Calculer les statistiques
   const fetchStats = useCallback(async () => {
     try {
-      // Dans une application réelle, vous feriez une API call spécifique pour les statistiques
       const response = await fetch('http://localhost:3001/api/transport-requests');
       const data = await response.json();
       
@@ -47,15 +58,14 @@ const Demande = () => {
     } catch (error) {
       console.error("Erreur lors du chargement des statistiques:", error);
     }
-  }, []); // Pas de dépendances externes
+  }, []);
 
-  // Récupération des demandes - En utilisant useCallback
+  // Récupération des demandes
   const fetchDemandes = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Construire l'URL avec les paramètres de pagination et de filtrage
       let url = `http://localhost:3001/api/transport-requests?page=${currentPage}&limit=10`;
       if (statusFilter) {
         url += `&status=${encodeURIComponent(statusFilter)}`;
@@ -76,19 +86,36 @@ const Demande = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter]); // Dépendances externes
+  }, [currentPage, statusFilter]);
 
-  // Charger les demandes avec les dépendances correctes
+  // Charger les demandes
   useEffect(() => {
     fetchDemandes();
   }, [fetchDemandes]);
 
-  // Charger les statistiques une seule fois
+  // Charger les statistiques
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
+  // Consulter une demande
   const handleConsulter = async (id) => {
+    setVerificationStatus({
+      loading: false,
+      error: null,
+      verified: false,
+      lineExists: false,
+      placesDisponibles: false,
+      vehiculeDisponible: null,
+      typeTransport: null,
+      remarque: ''
+    });
+    setUpdateStatus({
+      loading: false,
+      error: null,
+      success: false
+    });
+
     try {
       const response = await fetch(`http://localhost:3001/api/transport-requests/${id}`);
       const data = await response.json();
@@ -97,7 +124,7 @@ const Demande = () => {
         setSelectedDemande(data.data);
         setShowModal(true);
       } else {
-        alert("Erreur lors du chargement des détails de la demande");
+        alert("Erreur lors du chargement des détails");
       }
     } catch (error) {
       console.error("Erreur:", error);
@@ -105,41 +132,90 @@ const Demande = () => {
     }
   };
 
-  // Utiliser useCallback pour les fonctions utilisées dans des effets ou des handlers
-  const handleStatusChange = useCallback(async (id, status) => {
-    setUpdateStatus({ loading: true, error: null, success: false });
+  // Vérifier la ligne et les places
+  const handleVerifyLine = useCallback(async (id) => {
+    setVerificationStatus(prev => ({...prev, loading: true, error: null}));
     
     try {
-      const response = await fetch(`http://localhost:3001/api/transport-requests/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ statut: status })
-      });
-      
+      const response = await fetch(`http://localhost:3001/api/transport-requests/${id}/verify-line`);
       const data = await response.json();
       
-      if (data.success) {
-        setUpdateStatus({ loading: false, error: null, success: true });
-        // Mettre à jour le statut de la demande sélectionnée
-        if (selectedDemande) {
-          setSelectedDemande({ ...selectedDemande, statut: status });
-        }
-        // Refraîchir la liste des demandes et les statistiques
-        fetchDemandes();
-        fetchStats();
-        
-        setTimeout(() => {
-          setUpdateStatus({ loading: false, error: null, success: false });
-        }, 3000);
-      } else {
-        setUpdateStatus({ loading: false, error: data.message, success: false });
-      }
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut:", error);
-      setUpdateStatus({ loading: false, error: "Erreur de connexion au serveur", success: false });
-    }
-  }, [selectedDemande, fetchDemandes, fetchStats]);
+      if (!response.ok) throw new Error(data.message || 'Erreur de vérification');
 
+      setVerificationStatus({
+        loading: false,
+        error: null,
+        verified: true,
+        lineExists: data.lineExists,
+        placesDisponibles: data.placesDisponibles,
+        vehiculeDisponible: data.vehiculeDisponible,
+        typeTransport: data.typeTransport,
+        remarque: data.remarque
+      });
+
+      fetchDemandes();
+    } catch (error) {
+      setVerificationStatus(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message
+      }));
+    }
+  }, [fetchDemandes]);
+
+  // Changer le statut d'une demande
+ const handleStatusChange = useCallback(async (id, status) => {
+  setUpdateStatus({ loading: true, error: null, success: false });
+  
+  try {
+    const body = { statut: status };
+    
+    if (status === 'Approuvée' && verificationStatus.vehiculeDisponible) {
+      body.vehicule_id = verificationStatus.vehiculeDisponible.id;
+      body.vehicule_type = verificationStatus.typeTransport;
+      body.vehicule_matricule = verificationStatus.vehiculeDisponible.matricule;
+    }
+
+    const response = await fetch(`http://localhost:3001/api/transport-requests/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      setUpdateStatus({ loading: false, error: null, success: true });
+      if (selectedDemande) {
+        const updatedDemande = { 
+          ...selectedDemande, 
+          statut: status,
+          date_decision: new Date().toISOString()
+        };
+        
+        if (status === 'Approuvée' && verificationStatus.vehiculeDisponible) {
+          updatedDemande.vehicule_id = verificationStatus.vehiculeDisponible.id;
+          updatedDemande.vehicule_type = verificationStatus.typeTransport;
+          updatedDemande.vehicule_matricule = verificationStatus.vehiculeDisponible.matricule;
+        }
+        
+        setSelectedDemande(updatedDemande);
+      }
+      fetchDemandes();
+      fetchStats();
+      
+      setTimeout(() => {
+        setUpdateStatus({ loading: false, error: null, success: false });
+      }, 3000);
+    } else {
+      setUpdateStatus({ loading: false, error: data.message, success: false });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du statut:", error);
+    setUpdateStatus({ loading: false, error: "Erreur de connexion au serveur", success: false });
+  }
+}, [selectedDemande, fetchDemandes, fetchStats, verificationStatus]);
+  // Formater la date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('fr-FR', {
@@ -151,12 +227,24 @@ const Demande = () => {
     }).format(date);
   };
 
+  // Fermer le modal
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedDemande(null);
     setUpdateStatus({ loading: false, error: null, success: false });
+    setVerificationStatus({
+      loading: false,
+      error: null,
+      verified: false,
+      lineExists: false,
+      placesDisponibles: false,
+      vehiculeDisponible: null,
+      typeTransport: null,
+      remarque: ''
+    });
   };
 
+  // Classe CSS pour le statut
   const getStatusBadgeClass = (statut) => {
     switch (statut) {
       case 'En attente': return 'status-badge en-attente';
@@ -203,7 +291,7 @@ const Demande = () => {
                   value={statusFilter} 
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
-                    setCurrentPage(1); // Reset to first page when filter changes
+                    setCurrentPage(1);
                   }}
                 >
                   <option value="">Tous</option>
@@ -231,6 +319,7 @@ const Demande = () => {
                       <th>Matricule</th>
                       <th>Itinéraire</th>
                       <th>Date de soumission</th>
+                      <th>Remarque</th>
                       <th>Statut</th>
                       <th>Action</th>
                     </tr>
@@ -244,17 +333,28 @@ const Demande = () => {
                         <td>TR-{demande.id}</td>
                         <td>{demande.nom} {demande.prenom}</td>
                         <td>{demande.matricule}</td>
-                        <td>
-                        {demande.line_number ? (
-                        <>
-      Ligne {demande.line_number} - {demande.line_name} 
-      <br />({demande.line_depart} → {demande.line_arrivee})
-    </>
-  ) : (
-    demande.itineraire // Affiche le texte personnalisé si ce n'est pas une ligne prédéfinie
-  )}
-</td>
-                        <td>{formatDate(demande.date_soumission)}</td>
+                      
+                          <td>
+                            <td>
+                            {demande.line_number ? (
+                              <>
+                                Ligne {demande.line_number} - {demande.line_name} 
+                                <br />({demande.line_depart} → {demande.line_arrivee})
+                                {demande.stop_name && (
+                                  <div className="stop-info">
+                                    <small>Arrêt: {demande.stop_name} </small>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              demande.itineraire
+                            )}
+                          </td>
+                          </td>
+                          <td>{formatDate(demande.date_soumission)}</td>
+                        <td className="remarque-cell">
+                          {demande.remarque || 'Aucune remarque'}
+                        </td>
                         <td>
                           <span className={getStatusBadgeClass(demande.statut)}>
                             {demande.statut}
@@ -380,7 +480,8 @@ const Demande = () => {
                       <span>{selectedDemande.wilaya}</span>
                     </div>
                   </div>
-                  <div className="detail-row">
+               
+<div className="detail-row">
   <div className="detail-item full-width">
     <label>Itinéraire demandé</label>
     <span>
@@ -388,6 +489,11 @@ const Demande = () => {
         <>
           Ligne {selectedDemande.line_number} - {selectedDemande.line_name} 
           <br />(Départ: {selectedDemande.line_depart}, Arrivée: {selectedDemande.line_arrivee})
+          {selectedDemande.stop_name && (
+            <>
+              <br /><strong>Arrêt:</strong> {selectedDemande.stop_name}
+            </>
+          )}
         </>
       ) : (
         selectedDemande.itineraire
@@ -396,6 +502,23 @@ const Demande = () => {
   </div>
 </div>
                 </div>
+                
+                {/* Véhicule attribué (si approuvée) */}
+                {selectedDemande.statut === 'Approuvée' && selectedDemande.vehicule_matricule && (
+                  <div className="detail-section">
+                    <h3>Véhicule attribué</h3>
+                    <div className="detail-row">
+                      <div className="detail-item">
+                        <label>Type</label>
+                        <span>{selectedDemande.vehicule_type === 'interne' ? 'Bus interne' : 'Bus externe'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <label>Matricule</label>
+                        <span>{selectedDemande.vehicule_matricule}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Déclarations */}
                 <div className="detail-section">
@@ -408,6 +531,16 @@ const Demande = () => {
                     <div className="detail-item">
                       <label>Prime de transport</label>
                       <span>{selectedDemande.prime ? "Non perçue" : "Perçue"}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Remarque */}
+                <div className="detail-section">
+                  <h3>Remarque</h3>
+                  <div className="detail-row">
+                    <div className="detail-item full-width">
+                      <span>{selectedDemande.remarque || "Aucune remarque"}</span>
                     </div>
                   </div>
                 </div>
@@ -438,34 +571,70 @@ const Demande = () => {
                 )}
               </div>
             </div>
+            
+            {/* Footer du modal avec boutons d'action */}
             <div className="modal-footer">
+              {/* Messages de statut */}
+              {verificationStatus.loading && (
+                <div className="status-message info">Vérification en cours...</div>
+              )}
+
+              {verificationStatus.error && (
+                <div className="status-message error">{verificationStatus.error}</div>
+              )}
+
+              {verificationStatus.verified && (
+                <div className={`status-message ${
+                  verificationStatus.lineExists && verificationStatus.placesDisponibles 
+                    ? 'success' 
+                    : 'warning'
+                }`}>
+                  {verificationStatus.lineExists
+                    ? verificationStatus.placesDisponibles
+                      ? `${verificationStatus.typeTransport === 'interne' ? 'Bus interne' : 'Bus externe'} 
+                         ${verificationStatus.vehiculeDisponible?.matricule} disponible 
+                         (${verificationStatus.vehiculeDisponible?.placesRestantes} places)`
+                      : 'Aucune place disponible dans les véhicules de cette ligne'
+                    : 'Ligne non validée. Demande en attente.'}
+                </div>
+              )}
+
               {updateStatus.success && (
                 <div className="status-message success">
                   Statut mis à jour avec succès!
                 </div>
               )}
-              
-              {updateStatus.error && (
-                <div className="status-message error">
-                  {updateStatus.error}
-                </div>
-              )}
-              
-              <button 
-                className="btn-reject" 
-                onClick={() => handleStatusChange(selectedDemande.id, 'Rejetée')}
-                disabled={selectedDemande.statut === 'Rejetée' || updateStatus.loading}
-              >
-                {updateStatus.loading ? 'Traitement...' : 'Rejeter'}
-              </button>
-              
-              <button 
-                className="btn-approve" 
-                onClick={() => handleStatusChange(selectedDemande.id, 'Approuvée')}
-                disabled={selectedDemande.statut === 'Approuvée' || updateStatus.loading}
-              >
-                {updateStatus.loading ? 'Traitement...' : 'Approuver'}
-              </button>
+
+              {/* Boutons d'action */}
+              <div className="modal-actions">
+                <button 
+                  className="btn-verify" 
+                  onClick={() => handleVerifyLine(selectedDemande.id)}
+                  disabled={verificationStatus.loading || selectedDemande.statut !== 'En attente'}
+                >
+                  {verificationStatus.loading ? 'Vérification...' : 'Vérifier disponibilité'}
+                </button>
+
+                <button 
+                  className="btn-reject" 
+                  onClick={() => handleStatusChange(selectedDemande.id, 'Rejetée')}
+                  disabled={selectedDemande.statut === 'Rejetée' || updateStatus.loading}
+                >
+                  Rejeter
+                </button>
+                
+                <button 
+                  className="btn-approve" 
+                  onClick={() => handleStatusChange(selectedDemande.id, 'Approuvée')}
+                  disabled={
+                    selectedDemande.statut === 'Approuvée' || 
+                    updateStatus.loading ||
+                    (verificationStatus.verified && !verificationStatus.placesDisponibles)
+                  }
+                >
+                  Approuver
+                </button>
+              </div>
             </div>
           </div>
         </div>

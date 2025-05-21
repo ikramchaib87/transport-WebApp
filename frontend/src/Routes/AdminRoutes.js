@@ -6,7 +6,6 @@ import Chauffeurs from "../Pages/Admin/Chauffeurs";
 import TransportExterne from "../Pages/Admin/TransportExterne";
 import Affectation from "../Pages/Admin/Affectation";
 import Administrateurs from "../Pages/Admin/Administrateurs";
-import Suivi from "../Pages/Admin/Suivi";
 import TrajetAdmin from "../Pages/Admin/TrajetAdmin";
 import Demande from "../Pages/Admin/Demande";
 import Reclamtion  from "../Pages/Admin/Reclamation";
@@ -15,7 +14,6 @@ const AdminRoutes = () => {
   return (
     <Routes>
        <Route path="/Tableaudebord" element={<Tableaudebord />} />
-      <Route path="/Suivi" element={<Suivi />} />
       <Route path="/Employes" element={<Employes />} />
       <Route path="/Bus" element={<Bus />} />
       <Route path="/Chauffeurs" element={<Chauffeurs />} />

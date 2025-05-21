@@ -5,7 +5,6 @@ import Bus from "../Pages/SousAdmin/Bus";
 import Chauffeurs from "../Pages/SousAdmin/Chauffeurs";
 import TransportExterne from "../Pages/SousAdmin/TransportExterne";
 import Affectation from "../Pages/SousAdmin/Affectation";
-import Suivi from "../Pages/SousAdmin/Suivi";
 import TrajetAdmin from "../Pages/SousAdmin/TrajetAdmin";
 import Demande from "../Pages/SousAdmin/Demande";
 import Reclamation  from "../Pages/SousAdmin/Reclamation";
@@ -14,7 +13,6 @@ const SousAdminRoutes= () => {
   return (
     <Routes>
       <Route path="/Tableaudebord" element={<Tableaudebord />} />
-      <Route path="/Suivi" element={<Suivi />} />
       <Route path="/Employes" element={<Employes />} />
       <Route path="/Bus" element={<Bus />} />
       <Route path="/Chauffeurs" element={<Chauffeurs />} />
