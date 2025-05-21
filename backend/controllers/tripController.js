@@ -69,30 +69,27 @@ exports.posttrajets = async (req, res) => {
 // Route pour récupérer les trajets
 exports.gettrajets = async (req, res) => {
   try {
-    const { chauffeur } = req.query;
-
-    if (!chauffeur) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Paramètre "chauffeur" manquant' 
-      });
-    }
-
-    // Requête modifiée pour une meilleure correspondance
-    const query = `
+    // Ajout de la possibilité de filtrer par sens
+    const { sens } = req.query;
+    let query = `
       SELECT t.*, l.name as ligne_name 
       FROM trajets t
       LEFT JOIN lines l ON t.ligne_id = l.id
-      WHERE TRIM(t.chauffeur) ILIKE TRIM($1)
-      ORDER BY t.heure_depart ASC
     `;
 
-    const result = await pool.query(query, [`%${chauffeur}%`]);
-    console.log('Résultats de la requête:', result.rows); // Debug
+    const params = [];
+    
+    if (sens) {
+      query += ` WHERE t.sens = $1`;
+      params.push(sens);
+    }
 
+    query += ` ORDER BY t.created_at DESC`;
+
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
-    console.error('Erreur serveur:', err);
+    console.error('Erreur lors de la récupération des trajets:', err);
     res.status(500).json({ 
       success: false, 
       error: 'Erreur serveur',
@@ -308,4 +305,3 @@ exports.getTrajetById = async (req, res) => {
     client.release();
   }
 };
-//for bouchra 
