@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './LoginEmploye.css';
-import Logot from '../icons/logot.png';
+import logo from '../icons/logo.png';
 import Imglogin from '../icons/imglogin.png';
 import { useNavigate } from 'react-router-dom';
 
@@ -115,7 +115,7 @@ function LoginEmploye() {
         <div className="loginEmp-container">
             {/* Partie gauche */}
             <div className="loginEmp-left">
-                <img src={Logot} alt="Sonatrach Transport" className="logoEmp" />
+                <img src={logo} alt="Sonatrach Transport" className="logoEmp" />
                 <h2>Connexion Employé</h2>
                 
                 {/* Afficher l'erreur globale d'authentification */}

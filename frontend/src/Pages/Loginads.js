@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Loginads.css';
-import Logot from '../icons/logot.png';
+import logo from '../icons/logo.png';
 import Imglogin from '../icons/imglogin.png';
 import { useNavigate } from 'react-router-dom';
 
@@ -108,7 +108,7 @@ function Loginads() {
     <div className="login-container">
       {/* Partie gauche */}
       <div className="login-left">
-        <img src={Logot} alt="Sonatrach Transport" />
+        <   img src={logo} alt="Sonatrach Transport"  />
         <h2>Connexion</h2>
         
         {/* Afficher l'erreur globale d'authentification */}

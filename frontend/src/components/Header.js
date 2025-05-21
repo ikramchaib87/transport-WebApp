@@ -16,7 +16,8 @@ const Header = ({ username = "Utilisateur" }) => {
   
           <header className="user-info">
             <div className="welcome">
-              Bienvenue,............. !
+              DERCTION GESTION DU PATRIMOINE SIEGE<br/>
+              DEPARTEMENT TRANSPORT
             </div>
             <div className="user">
               <span><img src={parametr} alt="paramètre" height={25} width={25} /></span>
