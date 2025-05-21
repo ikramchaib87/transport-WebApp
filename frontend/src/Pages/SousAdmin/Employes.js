@@ -98,10 +98,15 @@ const EmplyTable = () => {
                                                 
                                             </td>
                                             <td>
-                                                {e.line_number 
-                                                    ? `Ligne ${e.line_number} - ${e.line_name}`
-                                                    : '-'}
-                                            </td>
+                                            {e.line_number 
+                                            ? `Ligne ${e.line_number} - ${e.line_name}`
+                                            : '-'}
+                                            {e.stop_name &&  (
+  
+                                            <small> Arrêt: {e.stop_name}</small>
+  
+                                            )}
+                                             </td>
                                              <td className="action-buttons"> 
                                                 <img 
                                                 src={viewDetails} 
@@ -178,12 +183,12 @@ const EmplyTable = () => {
                                                 </span>
                                             </div>
                                             <div className="info-row">
-                                                <span className="label">Ligne attribuée:</span>
-                                                <span>
-                                                    {selectedEmploye.line_number 
-                                                        ? `Ligne ${selectedEmploye.line_number} - ${selectedEmploye.line_name}`
-                                                        : 'Aucune ligne attribuée'}
-                                                </span>
+                                            <span className="label">Arrêt attribué:</span>
+                                            <span>
+                                            {selectedEmploye.stop_name 
+                                            ? `${selectedEmploye.stop_name} `
+                                            : 'Aucun arrêt spécifié'}
+                                            </span>
                                             </div>
                                             <div className="info-row">
                                                 <span className="label">Fonction:</span>

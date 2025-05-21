@@ -25,12 +25,14 @@ exports.getEmployees = async (req, res) => {
         l.number as line_number,
         l.name as line_name,
         l.depart as line_depart,
-        l.arrivee as line_arrivee
+        l.arrivee as line_arrivee,
+        s.name as stop_name,
+        s.position as stop_position
       FROM employes e
       LEFT JOIN lines l ON e.line_id = l.id
+      LEFT JOIN stops s ON e.stop_id = s.id
       ORDER BY e.nom, e.prenom
     `);
-    
     res.json({ 
       success: true, 
       employes: rows,
@@ -45,7 +47,7 @@ exports.getEmployees = async (req, res) => {
   }
 };
 exports.getEmployeesid = async (req, res) => {
-try {
+  try {
     const { id } = req.params;
     
     const { rows } = await pool.query(`
@@ -53,9 +55,12 @@ try {
         e.*,
         l.id as line_id,
         l.number as line_number,
-        l.name as line_name
+        l.name as line_name,
+        s.name as stop_name,
+        s.position as stop_position
       FROM employes e
       LEFT JOIN lines l ON e.line_id = l.id
+      LEFT JOIN stops s ON e.stop_id = s.id
       WHERE e.id = $1 OR e.ldap_id = $1
     `, [id]);
     
@@ -81,17 +86,7 @@ try {
 };
 exports.getemployessearch = async (req, res) => {
   try {
-    const { q } = req.query;
-    
-    if (!q || q.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Le terme de recherche est requis'
-      });
-    }
-    
-    const searchTerm = `%${q}%`;
-    
+    // ... code existant
     const { rows } = await pool.query(`
       SELECT 
         e.id,
@@ -101,9 +96,11 @@ exports.getemployessearch = async (req, res) => {
         e.email,
         e.photo_url,
         l.number as line_number,
-        l.name as line_name
+        l.name as line_name,
+        s.name as stop_name
       FROM employes e
       LEFT JOIN lines l ON e.line_id = l.id
+      LEFT JOIN stops s ON e.stop_id = s.id
       WHERE 
         e.ldap_id ILIKE $1 OR
         e.nom ILIKE $1 OR
@@ -112,7 +109,8 @@ exports.getemployessearch = async (req, res) => {
         e.commune ILIKE $1 OR
         e.wilaya ILIKE $1 OR
         l.name ILIKE $1 OR
-        l.number::text ILIKE $1
+        l.number::text ILIKE $1 OR
+        s.name ILIKE $1
       LIMIT 20
     `, [searchTerm]);
     

@@ -110,7 +110,8 @@ const ChauffTable = () => {
             <div className="ad-container">
                 <h2 className="title"> <span className="underline">Chauffeurs</span> </h2>
                 <br />
-                <p className="total">nombre total : <span className="count">{chauffeurs.length}</span></p>                
+                <p className="total">nombre total : <span className="count">{loading ? "..." : chauffeurs.length}</span></p>
+                
                 <div className="search-bar">
                     <input 
                         type="text" 
@@ -119,7 +120,7 @@ const ChauffTable = () => {
                         onChange={handleSearch}
                         disabled={loading}
                     />
-                    <button>
+                    <button disabled={loading}>
                         <img src={search} alt="Rechercher" />
                     </button>
                 </div>
@@ -150,11 +151,11 @@ const ChauffTable = () => {
                             // Afficher les données des chauffeurs
                             filteredChauffeurs.map((chauffeur, index) => (
                                 <tr key={chauffeur.ldap_id || index} className={index % 2 === 0 ? "gray-row" : ""}>
-                                    <td>{chauffeur.nom }</td>
-                                    <td>{chauffeur.prenom  }</td>
-                                    <td>{chauffeur.matricule  }</td>
-                                    <td>{chauffeur.tel }</td>
-                                    <td>{chauffeur.email }</td>
+                                    <td>{chauffeur.nom}</td>
+                                    <td>{chauffeur.prenom}</td>
+                                    <td>{chauffeur.matricule}</td>
+                                    <td>{chauffeur.tel}</td>
+                                    <td>{chauffeur.email}</td>
                                     <td className={getStatusClass(chauffeur.disponibilite)}>{chauffeur.disponibilite}</td>
                                     <td className="action-buttons">
                                         <img 
@@ -169,7 +170,7 @@ const ChauffTable = () => {
                         ) : (
                             // Message si aucun chauffeur trouvé
                             <tr>
-                                <td colSpan="8" style={{textAlign: "center"}}>Aucun chauffeur trouvé</td>
+                                <td colSpan="7" className="no-results">Aucun chauffeur trouvé</td>
                             </tr>
                         )}
                     </tbody>
@@ -178,63 +179,65 @@ const ChauffTable = () => {
         </div>
 
         {/* Modal pour afficher les détails du chauffeur (en lecture seule) */}
-      {showModal && selectedChauffeur && (
-    <div className="modal-overlay">
-        <div className="modal-content">
-            <div className="modal-header">
-                <h3>Détails du chauffeur</h3>
-                <button 
-                    className="close-btn"
-                    onClick={handleCloseModal}
-                >
-                    &times;
-                </button>
-            </div>
-            <div className="modal-body">
-                <div className="employe-details">
-                    <div className="photo-section">
-                        {selectedChauffeur.photo_url ? (
-                            <img 
-                                src={selectedChauffeur.photo_url} 
-                                alt={`${selectedChauffeur.nom} ${selectedChauffeur.prenom}`}
-                                className="detail-photo"
-                                onError={(e) => {e.target.src = "/default-avatar.png"}}
-                            />
-                        ) : (
-                            <div className="photo-placeholder large">
-                                {selectedChauffeur.nom?.charAt(0)}{selectedChauffeur.prenom?.charAt(0)}
-                            </div>
-                        )}
+        {showModal && selectedChauffeur && (
+            <div className="modal-overlay">
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h3>Détails du chauffeur</h3>
+                        <button className="close-button" onClick={handleCloseModal}>×</button>
                     </div>
-                    <div className="info-section">
-                        <div className="info-row">
-                            <span className="label">Matricule:</span>
-                            <span>{selectedChauffeur.matricule || '-'}</span>
+                    <div className="modal-body">
+                        <div className="chauffeur-profile">
+                            <div className="profile-photo-container">
+                                <img 
+                                    src={formData.photo_url || "/default-avatar.png"} 
+                                    alt="profil" 
+                                    className="profile-photo"
+                                    onError={(e) => {e.target.src = "/default-avatar.png"}}
+                                />
+                            </div>
+
+                            <div className="chauffeur-details">
+                                <div className="detail-group">
+                                    <label>Matricule:</label>
+                                    <div className="detail-value">{selectedChauffeur.matricule || "—"}</div>
+                                </div>
+
+                                <div className="detail-group">
+                                    <label>Nom:</label>
+                                    <div className="detail-value">{formData.nom || "—"}</div>
+                                </div>
+
+                                <div className="detail-group">
+                                    <label>Prénom:</label>
+                                    <div className="detail-value">{formData.prenom || "—"}</div>
+                                </div>
+
+                                <div className="detail-group">
+                                    <label>Email:</label>
+                                    <div className="detail-value">{formData.email || "—"}</div>
+                                </div>
+
+                                <div className="detail-group">
+                                    <label>Téléphone:</label>
+                                    <div className="detail-value">{formData.tel || "—"}</div>
+                                </div>
+
+                                <div className="detail-group">
+                                    <label>Disponibilité:</label>
+                                    <div className={`detail-value ${getStatusClass(formData.disponibilite)}`}>
+                                        {formData.disponibilite || "—"}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="info-row">
-                            <span className="label">Nom:</span>
-                            <span>{selectedChauffeur.nom || '-'} {selectedChauffeur.prenom || '-'}</span>
-                        </div>
-                        <div className="info-row">
-                            <span className="label">Email:</span>
-                            <span>{selectedChauffeur.email || '-'}</span>
-                        </div>
-                        <div className="info-row">
-                            <span className="label">Téléphone:</span>
-                            <span>{selectedChauffeur.tel || '-'}</span>
-                        </div>
-                        <div className="info-row">
-                            <span className="label">Disponibilité:</span>
-                            <span className={getStatusClass(selectedChauffeur.disponibilite)}>
-                                {selectedChauffeur.disponibilite || '-'}
-                            </span>
-                        </div>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="close-button-secondary" onClick={handleCloseModal}>Fermer</button>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-)}
+        )}
         </div>
     );
 };

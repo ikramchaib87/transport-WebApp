@@ -20,6 +20,7 @@ const TransportRequest = () => {
     indemnity: false,
     prime: false,
     image: null,
+    selectedStop: "",
   });
 
   // États pour les validations et chargements
@@ -58,9 +59,37 @@ const TransportRequest = () => {
 
 
   fetchAvailableLines();
+  const [selectedLineStops, setSelectedLineStops] = useState([]);
+
+const fetchLineStops = async (lineId) => {
+  try {
+    const response = await fetch(`http://localhost:5000/api/lines/${lineId}/stops`);
+    const data = await response.json();
+    setSelectedLineStops(data);
+  } catch (error) {
+    console.error('Error fetching line stops:', error);
+    setSelectedLineStops([]);
+  }
+};
+const handleItineraireChange = (e) => {
+  const { value } = e.target;
   
-
-
+  if (value === "custom") {
+    setShowCustomItineraire(true);
+    setFormData({...formData, itineraire: ""});
+    setSelectedLineStops([]);
+  } else {
+    setShowCustomItineraire(false);
+    setFormData({...formData, itineraire: value});
+    
+    // Si une ligne valide est sélectionnée, charger ses arrêts
+    if (value) {
+      fetchLineStops(value);
+    } else {
+      setSelectedLineStops([]);
+    }
+  }
+};
   // Liste des wilayas d'Algérie
   const wilayas = useMemo(() => [
      "Blida",  "Alger"
@@ -428,7 +457,10 @@ const TransportRequest = () => {
     });
     
     const data = await response.json();
-    
+     if (!formData.selectedStop && !showCustomItineraire) {
+    alert("Veuillez sélectionner un arrêt de prise en charge");
+    return;
+  }
     if (data.success) {
       alert(`Demande soumise avec succès ! Référence: TR-${data.requestId}`);
       window.location.href = "../../LoginEmploye";
@@ -695,21 +727,14 @@ const TransportRequest = () => {
                     </select>
                   </div>
                   
-                 <div className="form-group">
+<div className="form-group">
   <label>L'itinéraire exact *</label>
   {!showCustomItineraire ? (
     <>
       <select
         name="itineraire"
         value={formData.itineraire}
-        onChange={(e) => {
-          if (e.target.value === "custom") {
-            setShowCustomItineraire(true);
-            setFormData({...formData, itineraire: ""});
-          } else {
-            handleChange(e);
-          }
-        }}
+        onChange={handleItineraireChange}
         required
       >
         <option value="">Sélectionnez un itinéraire</option>
@@ -720,6 +745,26 @@ const TransportRequest = () => {
         ))}
         <option value="custom">Mon itinéraire n'est pas dans la liste</option>
       </select>
+      
+      {/* Sélecteur d'arrêt */}
+      {selectedLineStops.length > 0 && (
+        <div className="stop-selector-container">
+          <label>Arrêt de prise en charge *</label>
+          <select
+            name="selectedStop"
+            value={formData.selectedStop}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Sélectionnez votre arrêt</option>
+            {selectedLineStops.map(stop => (
+              <option key={stop.id} value={stop.id}>
+                {stop.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </>
   ) : (
     <div className="custom-itineraire-container">
@@ -737,15 +782,16 @@ const TransportRequest = () => {
         className="btn-back-to-list"
         onClick={() => {
           setShowCustomItineraire(false);
-             setFormData({...formData, itineraire: ""});
-                 }}
-                >
-                Retour à la liste
-               </button>
-                </div>
-                   )}
-               </div>
-                </div>
+          setFormData({...formData, itineraire: "", selectedStop: ""});
+          setSelectedLineStops([]);
+        }}
+      >
+        Retour à la liste
+      </button>
+    </div>
+  )}
+</div>
+</div>
               </div>
 
               {/* Employment details */}

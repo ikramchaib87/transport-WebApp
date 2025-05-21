@@ -20,7 +20,7 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 if (!fs.existsSync(driversDir)) fs.mkdirSync(driversDir, { recursive: true });
 const chauffeurRoutes = require('./routes/chauffeurRoutes');
 const profilemployeRoutes = require('./routes/profilemployeRoutes');
-
+const reclamationRoutes = require('./routes/reclamationRoutes');
 const app = express();
 
 // Configure CORS globally for all routes
@@ -55,4 +55,5 @@ app.use('/api', aasignmentLineRoutes);
 app.use('/api', tripRoutes); 
 app.use('/api', chauffeurRoutes);
 app.use('/api', profilemployeRoutes);
+app.use('/api/reclamations', reclamationRoutes);
 module.exports = app;

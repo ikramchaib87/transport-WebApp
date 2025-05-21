@@ -9,17 +9,18 @@
 
 /* Logo (hors de la barre orange) */
 .logo { 
-  background-color: #D9D9D9; 
-  padding: 10px;
+  background-color: white; 
+  padding-right: 40px;
   display: flex;
-  align-items: center;
+
   justify-content:flex-end;
   width: 200px; /* Largeur de la colonne logo */
-  height: 70px; /* Même hauteur que le header */
+  height: 100px; /* Même hauteur que le header */
 }
 
 .logo img {
-  width: 150px; /* Ajuste la taille du logo */
+  width: 120px; /* Ajuste la taille du logo */
+  
 }
 
 /* Barre orange (Header) */
@@ -31,7 +32,7 @@
   background-color: #ff8000;
   color: white;
   padding: 15px 20px;
-  height: 70px;
+  height: 100px;
 }
 
 /* Infos utilisateur */

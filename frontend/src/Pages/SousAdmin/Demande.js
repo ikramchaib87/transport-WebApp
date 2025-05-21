@@ -333,17 +333,25 @@ const Demande = () => {
                         <td>TR-{demande.id}</td>
                         <td>{demande.nom} {demande.prenom}</td>
                         <td>{demande.matricule}</td>
-                        <td>
-                          {demande.line_number ? (
-                            <>
-                              Ligne {demande.line_number} - {demande.line_name} 
-                              <br />({demande.line_depart} → {demande.line_arrivee})
-                            </>
-                          ) : (
-                            demande.itineraire
-                          )}
-                        </td>
-                        <td>{formatDate(demande.date_soumission)}</td>
+                      
+                          <td>
+                            <td>
+                            {demande.line_number ? (
+                              <>
+                                Ligne {demande.line_number} - {demande.line_name} 
+                                <br />({demande.line_depart} → {demande.line_arrivee})
+                                {demande.stop_name && (
+                                  <div className="stop-info">
+                                    <small>Arrêt: {demande.stop_name} </small>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              demande.itineraire
+                            )}
+                          </td>
+                          </td>
+                          <td>{formatDate(demande.date_soumission)}</td>
                         <td className="remarque-cell">
                           {demande.remarque || 'Aucune remarque'}
                         </td>
@@ -472,21 +480,27 @@ const Demande = () => {
                       <span>{selectedDemande.wilaya}</span>
                     </div>
                   </div>
-                  <div className="detail-row">
-                    <div className="detail-item full-width">
-                      <label>Itinéraire demandé</label>
-                      <span>
-                        {selectedDemande.line_number ? (
-                          <>
-                            Ligne {selectedDemande.line_number} - {selectedDemande.line_name} 
-                            <br />(Départ: {selectedDemande.line_depart}, Arrivée: {selectedDemande.line_arrivee})
-                          </>
-                        ) : (
-                          selectedDemande.itineraire
-                        )}
-                      </span>
-                    </div>
-                  </div>
+               
+<div className="detail-row">
+  <div className="detail-item full-width">
+    <label>Itinéraire demandé</label>
+    <span>
+      {selectedDemande.line_number ? (
+        <>
+          Ligne {selectedDemande.line_number} - {selectedDemande.line_name} 
+          <br />(Départ: {selectedDemande.line_depart}, Arrivée: {selectedDemande.line_arrivee})
+          {selectedDemande.stop_name && (
+            <>
+              <br /><strong>Arrêt:</strong> {selectedDemande.stop_name}
+            </>
+          )}
+        </>
+      ) : (
+        selectedDemande.itineraire
+      )}
+    </span>
+  </div>
+</div>
                 </div>
                 
                 {/* Véhicule attribué (si approuvée) */}

@@ -14,7 +14,7 @@ router.get('/employe-data', async (req, res) => {
     }
 
     // Requête directe avec le uidNumber
-    const result = await pool.query(`
+   const result = await pool.query(`
       SELECT 
         e.id,
         e.ldap_id,
@@ -31,9 +31,12 @@ router.get('/employe-data', async (req, res) => {
         e.wilaya,
         e.statut as transport_status,
         l.name as line_name,
-        l.number as line_number
+        l.number as line_number,
+        s.name as stop_name,
+        s.position as stop_position
       FROM employes e
       LEFT JOIN lines l ON e.line_id = l.id
+      LEFT JOIN stops s ON e.stop_id = s.id
       WHERE e.ldap_id = $1
       AND e.statut = 'Actif'
       LIMIT 1
@@ -70,7 +73,9 @@ router.get('/employe-data', async (req, res) => {
       wilaya: data.wilaya,
       transport_status: data.transport_status,
       line_name: data.line_name,
-      line_number: data.line_number
+      line_number: data.line_number,
+      stop_name: data.stop_name,
+      stop_position: data.stop_position
     });
 
   } catch (error) {

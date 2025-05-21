@@ -45,16 +45,38 @@ const CartEmploye = () => {
   if (error) {
     return <div className="error">Erreur: {error}</div>;
   }
-const handleDownload = () => {
-  // Créer un canvas pour générer l'image
+const handleDownload = async () => {
   const carteElement = document.querySelector('.emp-carte-transport');
   
-  html2canvas(carteElement).then(canvas => {
-    const link = document.createElement('a');
-    link.download = 'carte-transport.jpg';
-    link.href = canvas.toDataURL('image/jpeg');
-    link.click();
-  });
+  try {
+    // Si l'image provient d'une URL externe, nous devons nous assurer qu'elle est chargée
+    if (employeeData?.photo_url) {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous'; // Important pour les requêtes CORS
+      img.src = `http://localhost:5000${employeeData.photo_url}`;
+      
+      // Attendons que l'image soit chargée
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+    }
+
+    html2canvas(carteElement, {
+      useCORS: true, // Active le support CORS
+      logging: true, // Active les logs pour le débogage
+      allowTaint: true, // Permet le rendu d'images externes
+      scale: 2 // Améliore la qualité de l'image
+    }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = 'carte-transport.jpg';
+      link.href = canvas.toDataURL('image/jpeg', 1.0); // Qualité maximale
+      link.click();
+    });
+  } catch (error) {
+    console.error("Erreur lors du téléchargement de la carte:", error);
+    alert("Une erreur est survenue lors du téléchargement de la carte.");
+  }
 };
   return (
     <div>
@@ -104,6 +126,14 @@ const handleDownload = () => {
                     </span>
                     <div className="emp-field-underline"></div>
                   </div>
+                  <div className="emp-info-field">
+                  <label>Arrêt:</label>
+                  <span className="emp-info-value">
+                   {employeeData?.stop_name || "Non spécifié"}
+                  
+                   </span>
+                  <div className="emp-field-underline"></div>
+                 </div>
                 </div>
                 <div className="emp-carte-photo">
                   {employeeData?.photo_url ? (
@@ -140,8 +170,8 @@ const handleDownload = () => {
 
           <div className="emp-download-section">
             <button className="emp-download-button" onClick={handleDownload}>
-  Télécharger la carte en format jpg <span className="emp-download-icon">↓</span>
-</button>
+             Télécharger la carte en format jpg <span className="emp-download-icon">↓</span>
+           </button>
           </div>
         </div>
       </div>

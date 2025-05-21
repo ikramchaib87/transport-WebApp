@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Configuration LDAP
-const LDAP_URL = 'ldap://192.168.197.220';
+const LDAP_URL = 'ldap://192.168.149.220';
 const LDAP_SEARCH_BASE = 'ou=users,dc=contoso-lab,dc=com';
 
 const pool = new Pool({
@@ -279,12 +279,12 @@ app.post('/api/submit-transport-request', upload.single('image'), async (req, re
     const {
       name, prenom, email, phone, adresse, commune, wilaya, 
       itineraire, matricule, fonction, post, affectation,
-      indemnity, prime
+      indemnity, prime, selectedStop
     } = req.body;
     
     // Validation des champs obligatoires
     const requiredFields = ['name', 'prenom', 'email', 'phone', 'adresse', 'commune', 'wilaya', 
-'itineraire', 'matricule', 'fonction', 'post'];
+                          'matricule', 'fonction', 'post'];
     
     for (const field of requiredFields) {
       if (!req.body[field]) {
@@ -295,6 +295,13 @@ app.post('/api/submit-transport-request', upload.single('image'), async (req, re
       }
     }
     
+    // Validation spécifique pour l'itinéraire
+    if (!selectedStop) {
+      return res.status(400).json({
+        success: false,
+        message: "Veuillez sélectionner un arrêt de prise en charge"
+      });
+    }
     
     // Conversion des valeurs de type chaîne en booléen
     const indemnityBool = indemnity === 'true' || indemnity === true;
@@ -307,14 +314,17 @@ app.post('/api/submit-transport-request', upload.single('image'), async (req, re
     const query = `
       INSERT INTO transport_requests 
       (nom, prenom, email, phone, adresse, commune, wilaya, itineraire, 
-       matricule, fonction, post, affectation, indemnity, prime, image_path, date_soumission, statut)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), 'En attente')
+       matricule, fonction, post, affectation, indemnity, prime, image_path, 
+       date_soumission, statut, stop_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
+              NOW(), 'En attente', $16)
       RETURNING id
     `;
     
     const values = [
       name, prenom, email, phone, adresse, commune, wilaya, itineraire,
-      matricule, fonction, post, affectation || '', indemnityBool, primeBool, imagePath
+      matricule, fonction, post, affectation || '', indemnityBool, primeBool, imagePath,
+      selectedStop
     ];
     
     const result = await pool.query(query, values);
@@ -330,6 +340,10 @@ app.post('/api/submit-transport-request', upload.single('image'), async (req, re
           <h2 style="color: #003366;">Confirmation de demande de transport</h2>
           <p>Bonjour ${prenom} ${name},</p>
           <p>Nous avons bien reçu votre demande de transport. Votre demande porte le numéro de référence: <strong>TR-${requestId}</strong>.</p>
+          <p><strong>Détails de votre demande:</strong></p>
+          <ul>
+            <li>Itinéraire: ${itineraire}</li>
+          </ul>
           <p>Statut actuel: <strong>En attente</strong></p>
           <p>Vous serez informé(e) par email de tout changement de statut de votre demande.</p>
           <p>Cordialement,<br>L'équipe Transport Sonatrach</p>
@@ -355,7 +369,6 @@ app.post('/api/submit-transport-request', upload.single('image'), async (req, re
     });
   }
 });
-
 // API pour récupérer toutes les demandes de transport (pour l'admin)
 // API pour récupérer toutes les demandes de transport (pour l'admin)
 app.get('/api/transport-requests', async (req, res) => {
@@ -363,15 +376,18 @@ app.get('/api/transport-requests', async (req, res) => {
     const { status, page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
     
-    // Construire la requête avec jointure pour récupérer les détails de la ligne
+    // Construire la requête avec jointure pour récupérer les détails de la ligne ET l'arrêt
     let query = `
       SELECT tr.*, 
              l.number as line_number, 
              l.name as line_name, 
              l.depart as line_depart, 
-             l.arrivee as line_arrivee
+             l.arrivee as line_arrivee,
+             s.name as stop_name,
+             s.position as stop_position
       FROM transport_requests tr
       LEFT JOIN lines l ON tr.itineraire = l.id::text
+      LEFT JOIN stops s ON tr.stop_id = s.id
     `;
     
     const queryParams = [];
@@ -416,6 +432,7 @@ app.get('/api/transport-requests', async (req, res) => {
 });
 
 // API pour récupérer les détails d'une demande spécifique
+// Dans votre backend (api.js ou routes.js)
 app.get('/api/transport-requests/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -425,9 +442,12 @@ app.get('/api/transport-requests/:id', async (req, res) => {
              l.number as line_number, 
              l.name as line_name, 
              l.depart as line_depart, 
-             l.arrivee as line_arrivee
+             l.arrivee as line_arrivee,
+             s.name as stop_name,
+             s.position as stop_position
       FROM transport_requests tr
       LEFT JOIN lines l ON tr.itineraire = l.id::text
+      LEFT JOIN stops s ON tr.stop_id = s.id
       WHERE tr.id = $1
     `;
     
@@ -473,12 +493,15 @@ app.put('/api/transport-requests/:id/status', async (req, res) => {
     if (statut === 'Approuvée') {
       const lineId = isNaN(demande.itineraire) ? null : parseInt(demande.itineraire);
       
+      // Récupérer le stop_id de la demande
+      const stopId = demande.stop_id;
+      
       await pool.query(`
         INSERT INTO employes (
           ldap_id, nom, prenom, email, telephone, 
           fonction, post, affectation, photo_url,
-          adresse, commune, wilaya, line_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          adresse, commune, wilaya, line_id, stop_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         ON CONFLICT (ldap_id) 
         DO UPDATE SET
           nom = EXCLUDED.nom,
@@ -493,6 +516,7 @@ app.put('/api/transport-requests/:id/status', async (req, res) => {
           commune = EXCLUDED.commune,
           wilaya = EXCLUDED.wilaya,
           line_id = EXCLUDED.line_id,
+          stop_id = EXCLUDED.stop_id,
           updated_at = NOW()
       `, [
         demande.matricule,  // ldap_id = matricule
@@ -507,7 +531,8 @@ app.put('/api/transport-requests/:id/status', async (req, res) => {
         demande.adresse,
         demande.commune,
         demande.wilaya,
-        lineId
+        lineId,
+        stopId
       ]);
     }
 
