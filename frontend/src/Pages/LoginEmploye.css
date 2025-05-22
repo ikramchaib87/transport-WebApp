@@ -1,68 +1,128 @@
-/* Login.css */
+/* LoginEmp-style.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
 
-  
-  .loginEmp-container {
+.loginEmp-container {
     display: flex;
     height: 100vh;
-  }
-  
-  .loginEmp-left {
+}
+
+.loginEmp-left {
     width: 50%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
     background: #fff;
-    padding: 20px;
+    padding: 40px;
     box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .loginEmp-left img {
-    width: 400px;
-    margin-bottom: 10px;
-    
-  }
-  
-  .loginEmp-form {
-    width: 80%;
+}
+
+.loginEmp-left img {
+    width: 350px;
+    margin-bottom: 250px;
+}
+
+.loginEmp-form {
+    width: 100%;
     max-width: 400px;
-  }
-  
-  .loginEmp-form label {
+    margin-top: 20px;
+    margin-left: 100px;
+    margin-bottom: 20px;
+}
+
+#conxEmp {
+    width: 200px;
+    max-width: 400px;
+    margin-top: 20px;
+    margin-left: 120px;
+    margin-bottom: 20px;
+}
+
+.loginEmp-form label {
     display: block;
     font-weight: bold;
     margin-bottom: 5px;
-  }
-  
-  .loginEmp-form input {
+}
+
+.loginEmp-form input {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #ccc;
     border-radius: 5px;
-  }
-  
-  .rememberEmp-me {
+}
+
+.rememberEmp-me {
     display: flex;
-    text-align: left; 
+    text-align: left;
     margin-bottom: 15px;
-    
-  }
-  
-  .rememberEmp-me input {
+}
+
+.rememberEmp-me input {
     width: 16px;
     height: 16px;
-    margin-right: 5px; /* Ajuste l'espace entre la case et le texte */
+    margin-right: 5px;
     cursor: pointer;
-  }
- 
-  .loginEmp-right {
+}
+
+.buttonEmp-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.loginEmp-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #ff8000;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.3s;
+}
+
+.requestEmp-button {
+    padding: 10px 20px; 
+    font-size: 16px;  
+    border: 1px solid #ff8000;     
+    color: #ff8000;   
+    cursor: pointer;    
+    border-radius: 5px;   
+    background-color: white;     
+    transition: 0.3s; 
+} 
+
+
+.buttonEmp-group button a {
+    text-decoration: none;
+    color: #ff8000;
+    display: block;
+    width: 100%;
+}
+
+.requestEmp-button:hover {
+    background-color: #ff8000;
+    color: white;
+}
+
+.requestEmp-button:hover a {
+    color: white;
+}
+
+.loginEmp-right {
     width: 50%;
-   
     position: relative;
-  }
-  
-  .overlayEmp {
+}
+
+.overlayEmp {
     position: absolute;
     top: 0;
     left: 0;
@@ -72,50 +132,246 @@
     display: flex;
     justify-content: center;
     align-items: center;
-  }
-  
-  .overlayEmp img {
+}
+
+.overlayEmp img {
     width: 100%;
     height: 100%;
-  }
-  
-.buttonEmp-group{
+    object-fit: cover;
+}
+
+.input-errorEmp {
+    border: 1px solid #ff3333 !important;
+    background-color: #fff8f8;
+}
+
+/* Styles pour les erreurs de champ */
+.field-errorEmp {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+/* Style pour l'erreur globale */
+.global-errorEmp {
+    background-color: #ffecec;
+    color: #e74c3c;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    border-left: 4px solid #e74c3c;
+    width: 100%;
+}
+
+/* Style spécifique pour l'erreur d'accès non autorisé */
+.access-errorEmp {
+    background-color: #fff5f5;
+    color: #d63031;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    border: 1px solid #fab1a0;
+    font-weight: 500;
     display: flex;
-   
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
-.loginEmp-button {
-    padding: 10px 50px;
-    font-size: 20px;
-    border: none;
-    color: white;
-    cursor: pointer;
-    border-radius: 5px;
-    background-color: orange;
-    transition: 0.3s;
-}
-
-.requestEmp-button {
-    padding: 10px 20px;
+.access-errorEmp i {
+    margin-right: 8px;
     font-size: 16px;
-    border: 1px solid orange;
-    color: orange;
-    cursor: pointer;
-    border-radius: 5px;
-    background-color: white;
-    transition: 0.3s;
-}
-.buttonEmp-group button a{
-  text-decoration: none;
-  color: orange;
-}
-.requestEmp-button:hover  {
-    background-color: orange;
-    color: white;
-    
 }
 
-.loginEmp-right {
-    width: 50%;
-    position: relative;
+/* Responsive Design */
+@media screen and (max-width: 1200px) {
+    .loginEmp-left img {
+        width: 400px;
+        margin-bottom: 150px;
+    }
+    
+    .loginEmp-form {
+        margin-left: 50px;
+    }
+    
+    #conxEmp {
+        margin-left: 100px;
+    }
+}
+
+/* Tablet size */
+@media screen and (max-width: 992px) {
+    .loginEmp-container {
+        flex-direction: column-reverse;
+    }
+    
+    .loginEmp-left, .loginEmp-right {
+        width: 100%;
+        height: 50vh;
+    }
+    
+    .loginEmp-left {
+        padding: 20px;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .loginEmp-left img {
+        width: 400px;
+        margin-bottom: -30px;
+        margin-right: 300px;
+    }
+    
+    .loginEmp-form {
+        margin-left: 0;
+        max-width: 350px;
+    }
+    
+    #conxEmp {
+        margin-left: 0;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .overlayEmp img {
+        object-position: center;
+    }
+}
+
+/* Mobile size */
+@media screen and (max-width: 768px) {
+    .loginEmp-left, .loginEmp-right {
+        height: auto;
+    }
+    
+    .loginEmp-right {
+        min-height: 40vh;
+    }
+    
+    .loginEmp-left {
+        min-height: 60vh;
+        padding: 15px;
+    }
+    
+    .loginEmp-left img {
+        width: 400px;
+        margin-bottom: 10px;
+        margin-right: 100px;
+
+    }
+    
+    .loginEmp-form {
+        max-width: 100%;
+    }
+    
+    .loginEmp-form input {
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .rememberEmp-me {
+        margin-bottom: 10px;
+    }
+    
+    .loginEmp-button, .requestEmp-button {
+        padding: 8px;
+    }
+    
+    .global-errorEmp, .access-errorEmp {
+        padding: 8px;
+        font-size: 12px;
+    }
+}
+
+/* Small mobile devices */
+@media screen and (max-width: 480px) {
+    .loginEmp-left img {
+        width: 140px;
+    }
+    
+    .loginEmp-form label {
+        font-size: 14px;
+    }
+    
+    .loginEmp-form input {
+        margin-bottom: 8px;
+    }
+    
+    #conxEmp {
+        font-size: 20px;
+        margin-top: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .loginEmp-button, .requestEmp-button {
+        font-size: 14px;
+    }
+    
+    .rememberEmp-me {
+        font-size: 14px;
+    }
+    
+    .loginEmp-right {
+        min-height: 30vh;
+    }
+    
+    .loginEmp-left {
+        min-height: 70vh;
+    }
+}
+
+/* For very small devices */
+@media screen and (max-width: 320px) {
+    .loginEmp-left img {
+        width: 120px;
+    }
+    
+    .loginEmp-form {
+        padding: 0 5px;
+    }
+}
+
+/* Height-based media queries for better layout on shorter screens */
+@media screen and (max-height: 700px) {
+    .loginEmp-left img {
+        margin-bottom: 20px;
+    }
+    
+    .loginEmp-form {
+        margin-top: 10px;
+    }
+}
+
+/* Landscape orientation on mobile */
+@media screen and (max-width: 992px) and (orientation: landscape) {
+    .loginEmp-container {
+        flex-direction: row;
+    }
+    
+    .loginEmp-left, .loginEmp-right {
+        width: 50%;
+        height: 100vh;
+    }
+    
+    .loginEmp-left img {
+        width: 400px;
+        margin-bottom: 10px;
+    }
+    
+    .loginEmp-form {
+        max-width: 280px;
+    }
+    
+    .loginEmp-form input {
+        margin-bottom: 5px;
+        padding: 5px;
+    }
+    
+    .rememberEmp-me {
+        margin-bottom: 5px;
+    }
 }

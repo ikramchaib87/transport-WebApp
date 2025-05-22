@@ -119,7 +119,7 @@ const AdminTable = () => {
                                 <th>Téléphone</th>
                                 <th>Email</th>
                                 <th>Statut</th>
-                                <th>Actions</th>
+                            
                             </tr>
                         </thead>
                         <tbody>
@@ -133,7 +133,7 @@ const AdminTable = () => {
                                         <td>—</td>
                                         <td>—</td>
                                         <td>—</td>
-                                        <td><img src={edit} alt="" /><img src={Delete} alt="" /></td>
+
                                     </tr>
                                 ))
                             ) : safeFilteredAdmin.length > 0 ? (
@@ -146,10 +146,7 @@ const AdminTable = () => {
                                         <td>{adminItem?.tel || "—"}</td>
                                         <td>{adminItem?.email || "—"}</td>
                                         <td className={getStatusClass(adminItem?.statut)}>{adminItem?.statut || "—"}</td>
-                                        <td>
-                                            <img src={edit} alt="" />
-                                            <img src={Delete} alt="" />
-                                        </td>
+                                        
                                     </tr>
                                 ))
                             ) : (

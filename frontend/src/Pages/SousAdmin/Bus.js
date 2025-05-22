@@ -6,7 +6,7 @@ import Delete from "../../icons/delete.png";
 import edit from "../../icons/edit.png";
 import search from "../../icons/search.png";
 import AddBus from "./AddBus";
-import "./Administrateurs.css";
+import "./bus.css";
 
 const BusTable = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,18 +15,15 @@ const BusTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [updatingStatus, setUpdatingStatus] = useState(null); // Pour suivre quel bus est en cours de mise à jour
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
-  // URL de base de l'API
   const API_URL = "http://localhost:5000/api";
 
-  // Fonction pour récupérer tous les bus
   const fetchBuses = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/buses`);
       
-      // Adapter les noms de champs pour correspondre à votre frontend
       const formattedBuses = response.data.map(bus => ({
         id: bus.id,
         matricule: bus.matricule,
@@ -51,12 +48,10 @@ const BusTable = () => {
     }
   }, [API_URL]);
 
-  // Récupérer tous les bus au chargement du composant
   useEffect(() => {
     fetchBuses();
   }, [fetchBuses]);
 
-  // Fonction pour rechercher des bus
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       fetchBuses();
@@ -90,10 +85,8 @@ const BusTable = () => {
     }
   };
 
-  // Ajouter ou modifier un bus
   const handleAddBus = async (newBus) => {
     try {
-      // Adapter les noms de champs pour correspondre à votre backend
       const busData = {
         matricule: newBus.matricule,
         marque: newBus.mark,
@@ -103,19 +96,16 @@ const BusTable = () => {
         kilometrage: parseInt(newBus.kilometrage) || 0,
         nb_places: parseInt(newBus.nb_places) || 0,
         type: newBus.type,
-        statut: newBus.statue || "disponible", // Utilisez le statut existant si en mode édition
+        statut: newBus.statue || "disponible",
         annee: parseInt(newBus.annee) || new Date().getFullYear()
       };
 
       if (busToEdit) {
-        // Modification d'un bus existant - utilisation de l'ID au lieu du matricule
         await axios.put(`${API_URL}/buses/${busToEdit.id}`, busData);
       } else {
-        // Ajout d'un nouveau bus
         await axios.post(`${API_URL}/buses`, busData);
       }
       
-      // Actualiser la liste des bus
       fetchBuses();
       setBusToEdit(null);
       setIsModalOpen(false);
@@ -125,7 +115,6 @@ const BusTable = () => {
     }
   };
 
-  // Supprimer un bus - utilisation de l'ID au lieu du matricule
   const handleDeleteBus = async (id) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce bus ?")) {
       try {
@@ -138,24 +127,20 @@ const BusTable = () => {
     }
   };
 
-  // Ouvrir la modale pour modifier un bus
   const handleEditBus = (bus) => {
     setBusToEdit(bus);
     setIsModalOpen(true);
   };
 
-  // Fonction pour vérifier si un bus est réservé et mettre à jour son statut
   const checkBusReservation = useCallback(async (id) => {
     try {
       await axios.get(`${API_URL}/buses/${id}/reservations`);
-      // La mise à jour du statut se fait côté serveur si nécessaire
-      fetchBuses(); // Rafraîchir pour afficher les modifications
+      fetchBuses();
     } catch (err) {
       console.error("Erreur lors de la vérification des réservations:", err);
     }
   }, [API_URL, fetchBuses]);
 
-  // Vérifier les réservations pour tous les bus périodiquement
   useEffect(() => {
     const checkAllBusesReservations = async () => {
       try {
@@ -167,54 +152,55 @@ const BusTable = () => {
       }
     };
 
-    // Vérifier les réservations toutes les 5 minutes
     const intervalId = setInterval(checkAllBusesReservations, 5 * 60 * 1000);
-    
-    // Nettoyer l'intervalle lorsque le composant est démonté
     return () => clearInterval(intervalId);
   }, [buses, checkBusReservation]);
-
- 
-  
 
   return (
     <div>
       <Header />
-      <div className="ad">
+      <div className="bus-admin">
         <Navbar />
-        <div className="ad-container">
-          <h2 className="title">
-            <span className="underline">Bus</span>
+        <div className="bus-container">
+          <h2 className="bus-title">
+            <span className="bus-underline">Bus</span>
           </h2>
           <br />
-          <p className="total">
-            Nombre total : <span className="count">{buses.length}</span>
+          <p className="bus-total">
+            Nombre total : <span className="bus-count">{buses.length}</span>
           </p>
 
-          <div className="actions">
-            <div className="search-bar">
-              <input 
-                type="text" 
-                placeholder="Search" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <button onClick={handleSearch}>
-                <img src={search} alt="search" />
-              </button>
-              <button className="add-bus-btn" onClick={() => setIsModalOpen(true)}>
-                Ajouter un Bus
-              </button>
-            </div>
-          </div>
-
+         <div className="bus-actions">
+  <div className="bus-search-container">
+    <div className="bus-search-bar">
+      <input 
+        type="text" 
+        placeholder="Rechercher un bus..." 
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+      />
+      <button onClick={handleSearch} className="bus-search-button">
+        <img src={search} alt="search" />
+      </button>
+    </div>
+    <button 
+      onClick={() => {
+        setIsModalOpen(true);
+        setBusToEdit(null);
+      }}
+      className="bus-add-btn"
+    >
+      Ajouter un bus
+    </button>
+  </div>
+</div>
           {loading ? (
             <p>Chargement...</p>
           ) : error ? (
-            <p className="error-message">{error}</p>
+            <p className="bus-error-message">{error}</p>
           ) : (
-            <table className="admin-table">
+            <table className="bus-table">
               <thead>
                 <tr>
                   <th>Matricule⬍</th>
@@ -231,7 +217,7 @@ const BusTable = () => {
               </thead>
               <tbody>
                 {buses.map((bus, index) => (
-                  <tr key={bus.id} className={index % 2 === 0 ? "gray-row" : ""}>
+                  <tr key={bus.id} className={index % 2 === 0 ? "bus-row-gray" : ""}>
                     <td>{bus.matricule}</td>
                     <td>{bus.mark}</td>
                     <td>{bus.model}</td>
@@ -241,16 +227,15 @@ const BusTable = () => {
                     <td>{bus.type}</td>
                     <td>{bus.nb_places}</td>
                     <td>
-                      <span className={`status-badge status-${bus.statue.replace(/\s+/g, '-')}`}>
+                      <span className={`bus-status-badge bus-status-${bus.statue.toLowerCase().replace(/\s+/g, '-')}`}>
                         {bus.statue}
                       </span>
- 
                     </td>
                     <td>
-                      <button onClick={() => handleEditBus(bus)}>
+                      <button className="bus-action-btn" onClick={() => handleEditBus(bus)}>
                         <img src={edit} alt="edit" />
                       </button>
-                      <button onClick={() => handleDeleteBus(bus.id)}>
+                      <button className="bus-action-btn" onClick={() => handleDeleteBus(bus.id)}>
                         <img src={Delete} alt="delete" />
                       </button>
                     </td>

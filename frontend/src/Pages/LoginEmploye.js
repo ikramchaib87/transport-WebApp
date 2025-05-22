@@ -116,7 +116,7 @@ function LoginEmploye() {
             {/* Partie gauche */}
             <div className="loginEmp-left">
                 <img src={logo} alt="Sonatrach Transport" className="logoEmp" />
-                <h2>Connexion Employé</h2>
+                
                 
                 {/* Afficher l'erreur globale d'authentification */}
                 {error && <div className="global-error">{error}</div>}
@@ -139,6 +139,7 @@ function LoginEmploye() {
                 )}
                 
                 <form className="loginEmp-form" onSubmit={handleSubmit}>
+                    <h2 className="cox">Connexion Employé</h2>
                     {usernameError && <div className="field-error">{usernameError}</div>}
                     <label>Nom d'utilisateur</label>
                     <input 

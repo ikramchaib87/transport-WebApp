@@ -31,12 +31,12 @@
   padding: 20px;
 }
 
-.reclamation-section-title {
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 24px;
-  border-bottom: 2px solid #eaeaea;
-  padding-bottom: 10px;
+#reclamation-section-title {
+ margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+    padding-bottom: 5px;
+    border-bottom: 3px solid #FF7F00; 
 }
 
 /* Grille des réclamations */

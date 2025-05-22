@@ -86,7 +86,7 @@ const AdminReclamations = () => {
       <div className="reclamation-main-content">
         <Navbar />
         <div className="reclamation-content-area">
-          <h2 className="reclamation-section-title">Gestion des réclamations</h2>
+          <h3 id="reclamation-section-title">Gestion des réclamations</h3>
           
           {loading ? (
             <div className="reclamation-loading">Chargement en cours...</div>

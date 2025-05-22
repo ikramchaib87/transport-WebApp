@@ -109,7 +109,7 @@ function Loginads() {
       {/* Partie gauche */}
       <div className="login-left">
         <   img src={logo} alt="Sonatrach Transport"  />
-        <h2>Connexion</h2>
+       
         
         {/* Afficher l'erreur globale d'authentification */}
         {error && <div className="global-error">{error}</div>}
@@ -123,6 +123,7 @@ function Loginads() {
         )}
         
         <form className="login-form" onSubmit={handleSubmit}>
+           <h2 id='conx'>Connexion</h2>
           {usernameError && <div className="field-error">{usernameError}</div>}
           <label>Nom d'utilisateur</label>
           <input 

@@ -215,27 +215,30 @@ const handleConfirmAssignment = async () => {
           {error && <div className="error-message">{error}</div>}
 
           <div className="actions">
-            <div className="search-bar">
-              <input 
-                type="text" 
-                placeholder="Rechercher..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <button>
-                <img src={search} alt="search" />
-              </button>
-              <button 
-                className="add-reservation-btn" 
-                onClick={() => {
-                  setReservationToEdit(null);
-                  setIsModalOpen(true);
-                }}
-              >
-                Affecter
-              </button>
-            </div>
-          </div>
+  <div className="search-container">
+    <div className="search-group">
+      <input 
+        type="text" 
+        placeholder="Rechercher une affectation..." 
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      <button className="search-button">
+        <img src={search} alt="search" />
+      </button>
+    </div>
+    <button 
+      className="primary-button"
+      onClick={() => {
+        console.log("Bouton Affecter cliqué"); // Pour débogage
+        setReservationToEdit(null);
+        setIsModalOpen(true);
+      }}
+    >
+      Affecter un bus
+    </button>
+  </div>
+</div>
 
           {loading ? (
             <div className="loading">Chargement des affectations...</div>
@@ -256,7 +259,7 @@ const handleConfirmAssignment = async () => {
               <tbody>
                 {filteredReservations.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="no-data">
+                    <td colSpan="8" >
                       Aucune affectation disponible
                     </td>
                   </tr>

@@ -11,6 +11,7 @@
     flex: 1;
     padding: 1.5rem;
     overflow-y: auto;
+    margin-top: 35px;
   }
   
   .ltr-page-title {

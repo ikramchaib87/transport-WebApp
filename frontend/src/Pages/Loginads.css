@@ -4,79 +4,88 @@
     padding: 0;
     box-sizing: border-box;
     font-family: Arial, sans-serif;
-  }
-  
-  .login-container {
+}
+
+.login-container {
     display: flex;
     height: 100vh;
-  }
-  
-  .login-left {
+}
+
+.login-left {
     width: 50%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
     background: #fff;
-    padding: 20px;
+    padding: 40px;
     box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .login-left img {
-   width: 400px;
-    margin-bottom: 10px;
-  }
-  
-  .login-form {
-    width: 80%;
+}
+
+.login-left img {
+    width: 350px;
+    margin-bottom: 250px;
+
+}
+
+.login-form {
+    width: 100%;
     max-width: 400px;
-  }
-  
-  .login-form label {
+    margin-top: 20px;
+    margin-left: 100px;
+    margin-bottom: 20px;
+}
+#conx{
+    width: 200px;
+    max-width: 400px;
+    margin-top: 20px;
+    margin-left: 120px;
+    margin-bottom: 20px;
+}
+.login-form label {
     display: block;
     font-weight: bold;
     margin-bottom: 5px;
-  }
-  
-  .login-form input {
+}
+
+.login-form input {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #ccc;
     border-radius: 5px;
-  }
-  
-  .remember-me {
- display: flex;
-    text-align: left; 
+}
+
+.remember-me {
+    display: flex;
+    text-align: left;
     margin-bottom: 15px;
-    
-  }
-  
-  .remember-me input {
+}
+
+.remember-me input {
     width: 16px;
     height: 16px;
-    margin-right: 5px; /* Ajuste l'espace entre la case et le texte */
+    margin-right: 5px;
     cursor: pointer;
-  }
-  .login-button {
+}
+
+.login-button {
     width: 100%;
     padding: 10px;
-    background-color: orange;
+    background-color: #ff8000;
     border: none;
     color: white;
     font-size: 16px;
     cursor: pointer;
     border-radius: 5px;
-  }
-  
-  .login-right {
+}
+
+.login-right {
     width: 50%;
-   
     position: relative;
-  }
-  
-  .overlay {
+}
+
+.overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -86,59 +95,250 @@
     display: flex;
     justify-content: center;
     align-items: center;
-  }
-  
-  .overlay img {
+}
+
+.overlay img {
     width: 100%;
     height: 100%;
-  }
-  .input-error {
+    object-fit: cover;
+}
+
+.input-error {
     border: 1px solid #ff3333 !important;
     background-color: #fff8f8;
-  }
-  
-  /* Styles pour les erreurs de champ */
+}
+
+/* Styles pour les erreurs de champ */
 .field-error {
-  color: #e74c3c;
-  font-size: 12px;
-  margin-bottom: 5px;
-  font-weight: 500;
+    color: #e74c3c;
+    font-size: 12px;
+    margin-bottom: 5px;
+    font-weight: 500;
 }
 
 /* Style pour l'erreur globale */
 .global-error {
-  background-color: #ffecec;
-  color: #e74c3c;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  text-align: center;
-  border-left: 4px solid #e74c3c;
+    background-color: #ffecec;
+    color: #e74c3c;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    border-left: 4px solid #e74c3c;
+    width: 100%;
 }
 
 /* Style spécifique pour l'erreur d'accès non autorisé */
 .access-error {
-  background-color: #fff5f5;
-  color: #d63031;
-  padding: 12px;
-  border-radius: 5px;
-  margin-bottom: 20px;
-  text-align: center;
-  border: 1px solid #fab1a0;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: #fff5f5;
+    color: #d63031;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    border: 1px solid #fab1a0;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
 .access-error i {
-  margin-right: 8px;
-  font-size: 16px;
+    margin-right: 8px;
+    font-size: 16px;
+}
+/* Loginads-responsive.css - Responsive styles for the login page */
+
+/* Base responsive adjustments */
+@media screen and (max-width: 1200px) {
+  .login-left img {
+    width: 400px;
+    margin-bottom: 150px;
+  }
+  
+  .login-form {
+    margin-left: 50px;
+  }
+  
+  #conx {
+    margin-left: 100px;
+  }
 }
 
-/* Style pour les champs avec erreur */
-.input-error {
-  border: 1px solid #e74c3c !important;
-  background-color: #fff8f8;
+/* Tablet size */
+@media screen and (max-width: 992px) {
+  .login-container {
+    flex-direction: column-reverse;
+  }
+  
+  .login-left, .login-right {
+    width: 100%;
+    height: 50vh;
+  }
+  
+  .login-left {
+    padding: 20px;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .login-left img {
+    width: 400px;
+    margin-bottom: 5px;
+    margin-right: 300px;
+  }
+  
+  .login-form {
+    margin-left: 0;
+    max-width: 350px;
+  }
+  
+  #conx {
+    margin-left: 0;
+    text-align: center;
+    width: 100%;
+  }
+  
+  .overlay img {
+    object-position: center;
+  }
+}
+
+/* Mobile size */
+@media screen and (max-width: 768px) {
+  .login-left, .login-right {
+    height: auto;
+  }
+  
+  .login-right {
+    min-height: 40vh;
+  }
+  
+  .login-left {
+    min-height: 60vh;
+    padding: 15px;
+  }
+  
+  .login-left img {
+    width: 400px;
+    margin-bottom: 10px;
+    margin-right: 100px;
+  }
+  
+  .login-form {
+    max-width: 100%;
+  }
+  
+  .login-form input {
+    padding: 8px;
+    margin-bottom: 10px;
+  }
+  
+  .remember-me {
+    margin-bottom: 10px;
+  }
+  
+  .login-button {
+    padding: 8px;
+  }
+  
+  .global-error, .access-error {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+/* Small mobile devices */
+@media screen and (max-width: 480px) {
+  .login-left img {
+    width: 140px;
+     margin-right: 100px;
+  }
+  
+  .login-form label {
+    font-size: 14px;
+  }
+  
+  .login-form input {
+    margin-bottom: 8px;
+  }
+  
+  #conx {
+    font-size: 20px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .login-button {
+    font-size: 14px;
+  }
+  
+  .remember-me {
+    font-size: 14px;
+  }
+  
+  .login-right {
+    min-height: 30vh;
+  }
+  
+  .login-left {
+    min-height: 70vh;
+  }
+}
+
+/* For very small devices */
+@media screen and (max-width: 320px) {
+  .login-left img {
+    width: 120px;
+    margin-right: 100px;
+  }
+  
+  .login-form {
+    padding: 0 5px;
+  }
+}
+
+/* Height-based media queries for better layout on shorter screens */
+@media screen and (max-height: 700px) {
+  .login-left img {
+    margin-bottom: 20px;
+     margin-right: 100px;
+  }
+  
+  .login-form {
+    margin-top: 10px;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media screen and (max-width: 992px) and (orientation: landscape) {
+  .login-container {
+    flex-direction: row;
+  }
+  
+  .login-left, .login-right {
+    width: 50%;
+    height: 100vh;
+  }
+  
+  .login-left img {
+    width: 150px;
+    margin-bottom: 10px;
+    margin-right: 100px;
+  }
+  
+  .login-form {
+    max-width: 280px;
+  }
+  
+  .login-form input {
+    margin-bottom: 5px;
+    padding: 5px;
+  }
+  
+  .remember-me {
+    margin-bottom: 5px;
+  }
 }

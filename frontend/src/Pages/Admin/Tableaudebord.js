@@ -5,13 +5,27 @@ import "./Tableaudebord.css";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 
-const data = [
-  { name: 'Jan', employés: 120 },
-  { name: 'Feb', employés: 160 },
-  { name: 'Mar', employés: 240 },
-  { name: 'Apr', employés: 260 },
-  { name: 'May', employés: 280 },
-];
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="custom-tooltip" style={{
+        backgroundColor: 'white',
+        padding: '10px',
+        border: '1px solid #ff8000',
+        borderRadius: '5px',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+      }}>
+        <p className="label">{`${label}`}</p>
+        {payload.map((entry, index) => (
+          <p key={index} style={{ color: entry.color }}>
+            {`${entry.dataKey}: ${entry.value}`}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 const Tableaudebord = () => {
   const [busStats, setBusStats] = useState({
@@ -38,6 +52,51 @@ const Tableaudebord = () => {
 
   const [employees, setEmployees] = useState([]);
   const [transportUsersCount, setTransportUsersCount] = useState(0);
+  const [employeeEvolution, setEmployeeEvolution] = useState([]);
+  const [tripsStats, setTripsStats] = useState({
+    totalTrips: 0,
+    allerTrips: 0,
+    retourTrips: 0
+  });
+
+  const calculateEmployeeEvolution = (requests) => {
+    const monthlyData = {};
+    const currentDate = new Date();
+    
+    // Initialiser les 6 derniers mois
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+      
+      monthlyData[monthKey] = {
+        name: monthName,
+        employés: 0,
+        demandes: 0,
+        acceptées: 0,
+        refusées: 0
+      };
+    }
+
+    // Compter les demandes par mois
+    requests.forEach(request => {
+      const requestDate = new Date(request.date_soumission);
+      const monthKey = `${requestDate.getFullYear()}-${String(requestDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].demandes++;
+        
+        if (request.statut === 'Accepté' || request.statut === 'Approuvée') {
+          monthlyData[monthKey].acceptées++;
+          monthlyData[monthKey].employés++;
+        } else if (request.statut === 'Refusé' || request.statut === 'Rejetée') {
+          monthlyData[monthKey].refusées++;
+        }
+      }
+    });
+
+    return Object.values(monthlyData);
+  };
 
   const availablePercentage = (busStats.activeBuses / busStats.totalBuses) * 100;
   const maintenancePercentage = (busStats.maintenanceBuses / busStats.totalBuses) * 100;
@@ -85,6 +144,10 @@ const Tableaudebord = () => {
           allRequests: response.data.data
         });
 
+        // Calculer les statistiques d'évolution
+        const evolutionData = calculateEmployeeEvolution(response.data.data);
+        setEmployeeEvolution(evolutionData);
+
         const pending = response.data.data.filter(req => req.statut === 'En attente').length;
         const accepted = response.data.data.filter(req => req.statut === 'Accepté').length;
         const refused = response.data.data.filter(req => req.statut === 'Refusé').length;
@@ -114,9 +177,25 @@ const Tableaudebord = () => {
       }
     };
 
+    const fetchTripsData = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/trajets');
+        const allTrips = response.data;
+        
+        setTripsStats({
+          totalTrips: allTrips.length,
+          allerTrips: allTrips.filter(trip => trip.sens === 'aller').length,
+          retourTrips: allTrips.filter(trip => trip.sens === 'retour').length
+        });
+      } catch (error) {
+        console.error("Erreur trajets:", error);
+      }
+    };
+
     fetchBusData();
     fetchTransportRequests();
     fetchEmployees();
+    fetchTripsData();
   }, []);
 
   const getStatusBadge = (status) => {
@@ -141,20 +220,20 @@ const Tableaudebord = () => {
           {/* Haut */}
           <div className="tableaudebord-cards-row tableaudebord-top-row">
             <div className="tableaudebord-card tableaudebord-chart-card">
-              <h3 className="tableaudebord-card-title">Évolution des employés transportés</h3>
-              <ResponsiveContainer width="100%" height={150}>
-                <AreaChart data={data}>
+              <h3 className="tableaudebord-card-title">Évolution des employés transportés (6 derniers mois)</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={employeeEvolution}>
                   <defs>
                     <linearGradient id="colorEmp" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FF9C40" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#FF9C40" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#ff8000" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#ff8000" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="name" />
                   <YAxis />
                   <CartesianGrid strokeDasharray="3 3" />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="employés" stroke="#FF9C40" fillOpacity={1} fill="url(#colorEmp)" />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="employés" stroke="#ff8000" fillOpacity={1} fill="url(#colorEmp)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -228,7 +307,23 @@ const Tableaudebord = () => {
               <h3 className="tableaudebord-card-title">Bus en maintenance</h3>
               <p className="tableaudebord-big-number">{busStats.maintenanceBuses}</p>
             </div>
-            <div className="tableaudebord-card tableaudebord-grey-card" />
+            <div className="tableaudebord-card tableaudebord-medium-card">
+              <h3 className="tableaudebord-card-title">Statistiques des Trajets</h3>
+              <div className="tableaudebord-trips-stats">
+                <div className="tableaudebord-trip-stat">
+                  <span className="tableaudebord-big-number">{tripsStats.totalTrips}</span>
+                  <span className="tableaudebord-stat-label">Total</span>
+                </div>
+                <div className="tableaudebord-trip-stat">
+                  <span className="tableaudebord-big-number">{tripsStats.allerTrips}</span>
+                  <span className="tableaudebord-stat-label">Aller</span>
+                </div>
+                <div className="tableaudebord-trip-stat">
+                  <span className="tableaudebord-big-number">{tripsStats.retourTrips}</span>
+                  <span className="tableaudebord-stat-label">Retour</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Bas */}
