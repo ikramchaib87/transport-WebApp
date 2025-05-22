@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapPin, ChevronDown, ChevronUp, Clock, Users, ArrowRight, RotateCw } from 'lucide-react';
+import { MapPin, Clock, ArrowRight, RotateCw } from 'lucide-react';
 import "./Trajet.css";
 import Navbar from '../../components/Navbar';
 import Header from "../../components/Header";
@@ -8,108 +8,138 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Configuration des icônes Leaflet
-const DefaultIcon = L.icon({
+L.Marker.prototype.options.icon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41]
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
-const Trajet = ({ match }) => {
-  const [trajet, setTrajet] = useState(null);
-  const [ligne, setLigne] = useState(null);
+const Trajet = () => {
+  const [trajets, setTrajets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedStop, setExpandedStop] = useState(null);
+  const [selectedTrajet, setSelectedTrajet] = useState(null);
   const [stopTimes, setStopTimes] = useState([]);
   const [mapReady, setMapReady] = useState(false);
 
-  const trajetId = match?.params?.id;
-
-  useEffect(() => {
-    if (!trajetId) {
-      setError("ID de trajet non fourni");
-      setLoading(false);
-      return;
+  const fetchTrajets = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    // Récupérer le nom du chauffeur depuis sessionStorage
+    const userData = JSON.parse(sessionStorage.getItem('user'));
+    if (!userData?.displayName) {
+      throw new Error('Nom du chauffeur non trouvé dans sessionStorage');
     }
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // 1. Fetch trajet details
-        const trajetRes = await fetch(`http://localhost:5000/api/trajets/${trajetId}`);
-        if (!trajetRes.ok) {
-          throw new Error(`Erreur ${trajetRes.status}: ${trajetRes.statusText}`);
-        }
-        
-        const trajetData = await trajetRes.json();
-        const currentTrajet = trajetData.trajet || trajetData;
-        
-        if (!currentTrajet) {
-          throw new Error("Aucune donnée de trajet reçue");
-        }
+    // Appel API pour récupérer tous les trajets du chauffeur
+    const response = await fetch(
+      `http://localhost:5000/api/plan?chauffeur=${encodeURIComponent(userData.displayName)}`
+    );
 
-        setTrajet(currentTrajet);
+    if (!response.ok) {
+      throw new Error(`Erreur serveur: ${response.status}`);
+    }
 
-        // 2. Fetch ligne details
-        if (!currentTrajet.ligne_id) {
-          throw new Error("Aucun ID de ligne associé à ce trajet");
+    const data = await response.json();
+    
+    // Filtrer pour aujourd'hui
+    const today = new Date().toISOString().split('T')[0];
+    const trajetsToday = data.filter(trajet => {
+      let activeDates = null;
+      
+      // Tentative de parsing sécurisée de active_dates
+      if (trajet.active_dates) {
+        try {
+          // Vérifier si c'est déjà un objet/array ou une string
+          if (typeof trajet.active_dates === 'string') {
+            // Nettoyer la string avant de parser
+            const cleanedString = trajet.active_dates.trim();
+            if (cleanedString.startsWith('[') || cleanedString.startsWith('{')) {
+              activeDates = JSON.parse(cleanedString);
+            }
+          } else {
+            // Si c'est déjà un objet/array, l'utiliser directement
+            activeDates = trajet.active_dates;
+          }
+        } catch (parseError) {
+          console.warn(`Erreur de parsing pour active_dates du trajet ${trajet.id}:`, parseError);
+          console.log('Valeur problématique:', trajet.active_dates);
+          // Continuer sans les dates actives
+          activeDates = null;
         }
-        
-        const ligneRes = await fetch(`http://localhost:5000/api/lines/${currentTrajet.ligne_id}`);
-        if (!ligneRes.ok) {
-          throw new Error(`Erreur ${ligneRes.status}: ${ligneRes.statusText}`);
-        }
-        
-        let ligneData = await ligneRes.json();
-        
-        // Inverser les arrêts si c'est un trajet retour
-        if (currentTrajet.sens === 'retour' && ligneData.stops) {
-          ligneData.stops = [...ligneData.stops].reverse();
-        }
-
-        setLigne(ligneData);
-
-        // 3. Calculer les heures des arrêts
-        if (currentTrajet.heure_depart && ligneData.stops) {
-          const calculatedTimes = calculateStopTimes(
-            currentTrajet.heure_depart, 
-            ligneData.stops
-          );
-          setStopTimes(calculatedTimes);
-        }
-
-      } catch (err) {
-        console.error("Erreur lors du chargement:", err);
-        setError(err.message || "Une erreur est survenue");
-      } finally {
-        setLoading(false);
-        setMapReady(true);
       }
-    };
+      
+      return (
+        // Vérifier les dates actives explicites
+        (activeDates && Array.isArray(activeDates) && activeDates.includes(today)) ||
+        // Ou vérifier la plage date_debut/date_fin
+        (!trajet.date_debut || trajet.date_debut <= today) &&
+        (!trajet.date_fin || trajet.date_fin >= today)
+      );
+    });
 
-    fetchData();
+    setTrajets(trajetsToday);
+    
+    // Sélectionner le premier trajet par défaut
+    if (trajetsToday.length > 0) {
+      handleTrajetSelect(trajetsToday[0]);
+    }
 
-    // Cleanup function
-    return () => {
-      // Annule les requêtes en cours si nécessaire
-    };
-  }, [trajetId]);
+  } catch (err) {
+    console.error("Erreur lors du chargement:", err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const handleTrajetSelect = (trajet) => {
+  // Fonction utilitaire pour parser JSON de manière sécurisée
+  const safeJsonParse = (jsonString, fallback = null) => {
+    if (!jsonString) return fallback;
+    
+    try {
+      if (typeof jsonString === 'string') {
+        const cleaned = jsonString.trim();
+        if (cleaned.startsWith('[') || cleaned.startsWith('{')) {
+          return JSON.parse(cleaned);
+        }
+      } else {
+        // Si c'est déjà un objet/array
+        return jsonString;
+      }
+    } catch (error) {
+      console.warn('Erreur de parsing JSON:', error);
+    }
+    
+    return fallback;
+  };
+
+  // Mettre à jour le trajet sélectionné
+  setSelectedTrajet({
+    ...trajet,
+    ligne_stops: safeJsonParse(trajet.ligne_stops, [])
+  });
+
+  // Calculer les horaires d'arrêt
+  const stopsWithTimes = calculateStopTimes(trajet.heure_depart, safeJsonParse(trajet.ligne_stops, []));
+  setStopTimes(stopsWithTimes);
+
+  // Prêt pour afficher la carte
+  setMapReady(false); // Reset pour forcer un re-render
+};
 
   const calculateStopTimes = (departTime, stops) => {
-    if (!departTime || !stops || stops.length === 0) return [];
+    if (!departTime || !stops?.length) return [];
     
     const [hours, minutes] = departTime.split(':').map(Number);
     let totalMinutes = hours * 60 + minutes;
     
     return stops.map((stop, index) => {
-      // Ne pas ajouter de durée pour le premier arrêt
-      if (index > 0) {
-        totalMinutes += stop.duree || 0;
-      }
+      if (index > 0) totalMinutes += stop.duree || 0;
       
       const stopHours = Math.floor(totalMinutes / 60) % 24;
       const stopMinutes = totalMinutes % 60;
@@ -121,15 +151,24 @@ const Trajet = ({ match }) => {
     });
   };
 
-  const toggleStopExpansion = (index) => {
-    setExpandedStop(expandedStop === index ? null : index);
-  };
-
   const renderMap = () => {
-    if (!mapReady || !ligne?.stops || ligne.stops.length < 2) return null;
+    if (!mapReady || !selectedTrajet?.ligne_stops || selectedTrajet.ligne_stops.length < 2) {
+      return (
+        <div className="map-placeholder">
+          <MapPin size={24} />
+          <p>Carte non disponible</p>
+        </div>
+      );
+    }
 
-    const validStops = ligne.stops.filter(stop => stop.lat && stop.lng);
-    if (validStops.length < 2) return null;
+    const validStops = selectedTrajet.ligne_stops.filter(stop => stop.lat && stop.lng);
+    if (validStops.length < 2) {
+      return (
+        <div className="map-placeholder">
+          <p>Coordonnées des arrêts manquantes</p>
+        </div>
+      );
+    }
 
     const waypoints = validStops.map(stop => [stop.lat, stop.lng]);
 
@@ -146,10 +185,7 @@ const Trajet = ({ match }) => {
         />
         
         {validStops.map((stop, index) => (
-          <Marker 
-            key={index} 
-            position={[stop.lat, stop.lng]}
-          >
+          <Marker key={index} position={[stop.lat, stop.lng]}>
             <Popup>
               {index === 0 ? 'Départ' : 
                index === validStops.length - 1 ? 'Arrivée' : 
@@ -172,187 +208,130 @@ const Trajet = ({ match }) => {
   const handleRefresh = () => {
     setLoading(true);
     setError(null);
-    setTrajet(null);
-    setLigne(null);
-    setStopTimes([]);
-    setTimeout(() => window.location.reload(), 300);
+    setTrajets([]);
+    setSelectedTrajet(null);
+    fetchTrajets();
   };
 
-  if (loading) {
-    return (
-      <div className="trajet-container">
-        <Header />
-        <Navbar />
-        <div className="loading-state">
-          <div className="spinner-container">
-            <RotateCw className="spinner-icon" size={32} />
-          </div>
-          <p>Chargement des détails du trajet...</p>
-        </div>
-      </div>
-    );
-  }
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    return timeStr.replace(':', 'h');
+  };
 
-  if (error) {
-    return (
-          <div>
-      <Header />
-      <div className="add">
-        <Navbar />
-        <div className="cart-container">
-          <div className="emp-carte-title">
-            <h2>Ma carte de transport</h2>
-            <div className="emp-red-dot"></div>
-          </div>
-          <p className="error-message">{error}</p>
-          <button 
-            onClick={handleRefresh}
-            className="refresh-button"
-          >
-            <RotateCw size={16} /> Réessayer
-          </button>
-         </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!trajet || !ligne) {
-    return (
-          <div>
-      <Header />
-      <div className="add">
-        <Navbar />
-        <div className="cart-container">
-          <div className="emp-carte-title">
-            <h2>Ma carte de transport</h2>
-            <div className="emp-red-dot"></div>
-          </div>
-          <p>Aucune donnée de trajet disponible</p>
-          <button 
-            onClick={handleRefresh}
-            className="refresh-button"
-          >
-            <RotateCw size={16} /> Actualiser
-          </button>
-        </div>
-         </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchTrajets();
+  }, []);
 
   return (
-      <div>
+    <div>
       <Header />
       <div className="add">
         <Navbar />
         <div className="cart-container">
           <div className="emp-carte-title">
-            <h2>Ma carte de transport</h2>
+            <h2>Mes Trajets du Jour</h2>
             <div className="emp-red-dot"></div>
           </div>
-      
-      <div className="trajet-content">
-        {/* En-tête du trajet */}
-        <div className="trajet-header">
-          <div className="header-top">
-            <h2>
-              <span className="line-number">Ligne {trajet.ligne_number}</span>
-              <span className="route">
-                {trajet.depart} <ArrowRight size={18} /> {trajet.arrivee}
-              </span>
-            </h2>
-            <span className={`sens-tag ${trajet.sens}`}>
-              {trajet.sens === 'aller' ? 'Aller' : 'Retour'}
-            </span>
-          </div>
 
-          <div className="header-meta">
-            <div className="meta-item">
-              <Clock size={16} />
-              <span>{trajet.heure_depart} - {trajet.heure_arrivee}</span>
+          {loading ? (
+            <div className="loading-container">
+              <RotateCw className="spinner" size={32} />
+              <p>Chargement de vos trajets...</p>
             </div>
-            <div className="meta-item">
-              <Users size={16} />
-              <span>{trajet.nombre_places || 0} places</span>
+          ) : error ? (
+            <div className="error-container">
+              <p>{error}</p>
+              <button onClick={handleRefresh} className="refresh-button">
+                <RotateCw size={16} /> Réessayer
+              </button>
             </div>
-          </div>
-
-          <button className="start-button">
-            Démarrer le trajet
-          </button>
-        </div>
-
-        {/* Détails des arrêts */}
-        <div className="stops-section">
-          <h3>Itinéraire et arrêts</h3>
-          <div className="stops-list">
-            {stopTimes.map((stop, index) => (
-              <div 
-                key={index} 
-                className={`stop-item ${index === 0 ? 'first' : index === stopTimes.length - 1 ? 'last' : ''}`}
-              >
-                <div 
-                  className="stop-header"
-                  onClick={() => toggleStopExpansion(index)}
-                >
-                  <div className="stop-marker">
-                    {index === 0 ? (
-                      <div className="marker-start"></div>
-                    ) : index === stopTimes.length - 1 ? (
-                      <div className="marker-end"></div>
-                    ) : (
-                      <div className="marker-middle">{index}</div>
-                    )}
-                  </div>
-                  <div className="stop-info">
-                    <span className="stop-name">{stop.name}</span>
-                    <span className="stop-time">{stop.heure}</span>
-                  </div>
-                  <div className="stop-toggle">
-                    {expandedStop === index ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                  </div>
-                </div>
-
-                {expandedStop === index && (
-                  <div className="stop-details">
-                    <div className="detail-row">
-                      <span>Heure prévue:</span>
-                      <span className="detail-value">{stop.heure}</span>
+          ) : trajets.length === 0 ? (
+            <div className="empty-state">
+              <p>Aucun trajet prévu aujourd'hui</p>
+              <button onClick={handleRefresh} className="refresh-button">
+                <RotateCw size={16} /> Actualiser
+              </button>
+            </div>
+          ) : (
+            <div className="trajet-view">
+              <div className="trajet-list">
+                <h3>Vos trajets</h3>
+                {trajets.map((trajet, index) => (
+                  <div 
+                    key={index}
+                    className={`trajet-card ${selectedTrajet?.id === trajet.id ? 'active' : ''}`}
+                    onClick={() => handleTrajetSelect(trajet)}
+                  >
+                    <div className="trajet-info">
+                      <h4>Ligne {trajet.ligne_number}</h4>
+                      <p className="route">
+                        {trajet.depart} <ArrowRight size={14} /> {trajet.arrivee}
+                      </p>
                     </div>
-                    <div className="detail-row">
-                      <span>Durée depuis départ:</span>
-                      <span className="detail-value">{stop.duree || 0} minutes</span>
+                    <div className="trajet-time">
+                      <span>{formatTime(trajet.heure_depart)}</span>
+                      <span>{formatTime(trajet.heure_arrivee)}</span>
                     </div>
-                    {stop.lat && stop.lng && (
-                      <div className="detail-row">
-                        <span>Coordonnées:</span>
-                        <span className="detail-value">{stop.lat}, {stop.lng}</span>
+                    <div className={`trajet-sens ${trajet.sens}`}>
+                      {trajet.sens === 'aller' ? 'Aller' : 'Retour'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="trajet-details">
+                {selectedTrajet ? (
+                  <>
+                    <div className="detail-header">
+                      <h3>
+                        {selectedTrajet.depart} 
+                        <ArrowRight size={18} /> 
+                        {selectedTrajet.arrivee}
+                      </h3>
+                      <div className="detail-meta">
+                        <span>Ligne {selectedTrajet.ligne_number}</span>
+                        <span>{selectedTrajet.heure_depart} - {selectedTrajet.heure_arrivee}</span>
                       </div>
-                    )}
+                    </div>
+
+                    <div className="map-container">
+                      {renderMap()}
+                    </div>
+
+                    <div className="stops-timeline">
+                      <h4>Itinéraire complet</h4>
+                      {stopTimes.length > 0 ? (
+                        stopTimes.map((stop, index) => (
+                          <div key={index} className="stop-item">
+                            <div className="stop-time">{stop.heure}</div>
+                            <div className="stop-marker">
+                              <div className="marker-dot"></div>
+                              {index < stopTimes.length - 1 && <div className="marker-line"></div>}
+                            </div>
+                            <div className="stop-info">
+                              <div className="stop-name">{stop.name}</div>
+                              {stop.adresse && (
+                                <div className="stop-address">{stop.adresse}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p>Aucun arrêt disponible</p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="no-trajet-selected">
+                    <p>Sélectionnez un trajet pour voir les détails</p>
                   </div>
                 )}
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Carte de l'itinéraire */}
-        <div className="map-section">
-          <h3>Visualisation de l'itinéraire</h3>
-          <div className="map-wrapper">
-            {renderMap() || (
-              <div className="map-placeholder">
-                <MapPin size={24} />
-                <p>Carte non disponible</p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
-    </div>
-     </div>
   );
 };
 

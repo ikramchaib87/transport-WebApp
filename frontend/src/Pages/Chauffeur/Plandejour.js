@@ -24,7 +24,8 @@ const Plandejour = () => {
 
         setChauffeurName(name);
         
-        const response = await fetch(`http://localhost:5000/api/trajets?chauffeur=${encodeURIComponent(name)}`);
+        // Point de terminaison API modifié de "trajets" à "plan"
+        const response = await fetch(`http://localhost:5000/api/plan?chauffeur=${encodeURIComponent(name)}`);
         if (!response.ok) {
           throw new Error(`Erreur serveur: ${response.status}`);
         }

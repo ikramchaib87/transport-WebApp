@@ -4,7 +4,32 @@ import Header from "../../components/Header";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faFileExport, faEdit, faTrash, faSearch, faTimes, faSave } from '@fortawesome/free-solid-svg-icons';
 import "./TrajetAdmin.css";
-
+// Dans TrajetAdmin.js, ajoutez cette fonction pour assurer un format d'heure valide
+const formatTimeForAPI = (timeStr) => {
+  if (!timeStr) return "00:00";
+  
+  // Si le format est déjà HH:MM, on le retourne tel quel
+  if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeStr)) {
+    // Assurer le format à 2 chiffres (ex: 8:00 -> 08:00)
+    const [hours, minutes] = timeStr.split(':');
+    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+  }
+  
+  // Si le format est incorrect, essayer de l'analyser
+  try {
+    // Pour un format comme "8h00" ou similaire
+    if (timeStr.includes('h')) {
+      const [hours, minutes] = timeStr.split('h');
+      return `${hours.padStart(2, '0')}:${(minutes || '00').padStart(2, '0')}`;
+    }
+    
+    // Pour d'autres formats, par défaut retourner 00:00
+    return "00:00";
+  } catch (e) {
+    console.error("Erreur de formatage d'heure:", e);
+    return "00:00";
+  }
+};
 const TrajetAdmin = () => {
   const [activeTab, setActiveTab] = useState("tous");
   const [showAddRegularForm, setShowAddRegularForm] = useState(false);
@@ -129,7 +154,9 @@ const TrajetAdmin = () => {
 const calculateStopTimes = (departTime, stops) => {
   if (!stops || stops.length < 2) return [];
   
-  const [departHours, departMinutes] = departTime.split(':').map(Number);
+  // S'assurer que l'heure de départ est au bon format
+  const formattedDepartTime = formatTimeForAPI(departTime);
+  const [departHours, departMinutes] = formattedDepartTime.split(':').map(Number);
   let totalMinutes = departHours * 60 + departMinutes;
   
   const stopTimes = [];
@@ -145,9 +172,12 @@ const calculateStopTimes = (departTime, stops) => {
     const hours = Math.floor(totalMinutes / 60) % 24;
     const minutes = totalMinutes % 60;
     
+    // Format avec deux chiffres pour être conforme à la validation
+    const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    
     stopTimes.push({
       nom: stop.name,
-      heure: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      heure: formattedTime
     });
   }
   
@@ -296,12 +326,6 @@ const calculateStopTimes = (departTime, stops) => {
       throw new Error('Veuillez sélectionner une ligne');
     }
 
-    // Validation du format des heures
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(formData.heureDepart) || !timeRegex.test(formData.heureArrivee)) {
-      throw new Error('Format de temps invalide. Utilisez HH:MM (ex: 08:00)');
-    }
-
     // 2. Préparation des données du trajet principal
     const trajetData = {
       ligne_id: selectedLigne.id,
@@ -309,8 +333,8 @@ const calculateStopTimes = (departTime, stops) => {
       depart: formData.depart,
       arrivee: formData.arrivee,
       jours: formData.jours.join(', '),
-      heure_depart: formData.heureDepart,
-      heure_arrivee: formData.heureArrivee,
+      heure_depart: formatTimeForAPI(formData.heureDepart),
+      heure_arrivee: formatTimeForAPI(formData.heureArrivee),
       duree: formData.duree,
       chauffeur: formData.chauffeur,
       vehicule: formData.vehicule,
@@ -345,67 +369,66 @@ const calculateStopTimes = (departTime, stops) => {
     }
 
     // 4. Création du retour SI nécessaire (uniquement pour nouveaux trajets aller)
-if (!editingTrajetId && formData.createReturn && formData.sens === 'aller') {
-  const trajetPrincipal = await response.json();
-  
-  // Création des arrêts inversés pour le retour avec les mêmes heures de base
-  const createReturnStops = (originalStops, departTime, arriveTime) => {
-    if (!originalStops || originalStops.length === 0) {
-      return [];
+    if (!editingTrajetId && formData.createReturn && formData.sens === 'aller') {
+      const trajetPrincipal = await response.json();
+      
+      // Création des arrêts inversés pour le retour avec les mêmes heures de base
+      const createReturnStops = (originalStops, departTime, arriveTime) => {
+        if (!originalStops || originalStops.length === 0) {
+          return [];
+        }
+        
+        // Creer une copie des arrêts originaux et les inverser
+        const reversedStops = [...originalStops].reverse();
+        
+        // Garder les mêmes heures mais en ordre inverse
+        return reversedStops.map(stop => ({
+          nom: stop.nom,
+          heure: formatTimeForAPI(stop.heure)
+        }));
+      };
+      
+      const arretsRetour = createReturnStops(
+        formData.arretsIntermediaires, 
+        formData.heureDepart, 
+        formData.heureArrivee
+      );
+      
+      // Préparation des données du trajet retour (avec arrêts inversés)
+      const trajetRetourData = {
+        ...trajetData,
+        depart: formData.arrivee, // Inversion départ/arrivée
+        arrivee: formData.depart,
+        heure_depart: formatTimeForAPI(formData.heureDepart), // Format validé
+        heure_arrivee: formatTimeForAPI(formData.heureArrivee), // Format validé
+        arrets: arretsRetour, // Arrêts inversés avec heures à modifier
+        sens: 'retour'
+      };
+
+      // Envoi du trajet retour
+      const retourResponse = await fetch('http://localhost:5000/api/trajets', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(trajetRetourData)
+      });
+
+      if (!retourResponse.ok) {
+        throw new Error('Erreur lors de la création du trajet retour');
+      }
+
+      const trajetRetour = await retourResponse.json();
+
+      alert(`Trajet aller (ID: ${trajetPrincipal.trajet.id}) et retour (ID: ${trajetRetour.trajet.id}) créés avec succès ! Vous pouvez maintenant modifier les heures du trajet retour.`);
+    } else {
+      // Message pour les autres cas
+      const result = await response.json();
+      alert(editingTrajetId 
+        ? "Trajet mis à jour avec succès !" 
+        : `Trajet créé avec succès ! (ID: ${result.trajet.id})`);
     }
-    
-    // Creer une copie des arrêts originaux et les inverser
-    const reversedStops = [...originalStops].reverse();
-    
-    // Garder les mêmes heures mais en ordre inverse
-    // Vous pourrez modifier ces heures plus tard dans l'interface
-    return reversedStops.map(stop => ({
-      nom: stop.nom,
-      heure: stop.heure // On garde les heures pour que vous puissiez les modifier manuellement
-    }));
-  };
-  
-  const arretsRetour = createReturnStops(
-    formData.arretsIntermediaires, 
-    formData.heureDepart, 
-    formData.heureArrivee
-  );
-  
-  // Préparation des données du trajet retour (avec arrêts inversés)
-  const trajetRetourData = {
-    ...trajetData,
-    depart: formData.arrivee, // Inversion départ/arrivée
-    arrivee: formData.depart,
-    heure_depart: formData.heureDepart, // Gardez les heures originales
-    heure_arrivee: formData.heureArrivee,
-    arrets: arretsRetour, // Arrêts inversés avec heures à modifier
-    sens: 'retour'
-  };
-
-  // Envoi du trajet retour
-  const retourResponse = await fetch('http://localhost:5000/api/trajets', {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify(trajetRetourData)
-  });
-
-  if (!retourResponse.ok) {
-    throw new Error('Erreur lors de la création du trajet retour');
-  }
-
-  const trajetRetour = await retourResponse.json();
-
-  alert(`Trajet aller (ID: ${trajetPrincipal.trajet.id}) et retour (ID: ${trajetRetour.trajet.id}) créés avec succès ! Vous pouvez maintenant modifier les heures du trajet retour.`);
-} else {
-  // Message pour les autres cas
-  const result = await response.json();
-  alert(editingTrajetId 
-    ? "Trajet mis à jour avec succès !" 
-    : `Trajet créé avec succès ! (ID: ${result.trajet.id})`);
-}
 
     // 5. Mise à jour de la liste des trajets
     const trajetsResponse = await fetch('http://localhost:5000/api/trajets');
@@ -485,6 +508,10 @@ if (!editingTrajetId && formData.createReturn && formData.sens === 'aller') {
       if (isNaN(date.getTime())) return '';
       return date.toISOString().split('T')[0];
     };
+    
+    // S'assurer que les heures sont au bon format
+    const heureDepart = formatTimeForAPI(trajetData.heure_depart);
+    const heureArrivee = formatTimeForAPI(trajetData.heure_arrivee);
 
     // 4. Mise à jour du state
     setFormData({
@@ -494,8 +521,8 @@ if (!editingTrajetId && formData.createReturn && formData.sens === 'aller') {
       jours: typeof trajetData.jours === 'string' 
         ? trajetData.jours.split(',').map(j => j.trim())
         : trajetData.jours || [],
-      heureDepart: trajetData.heure_depart,
-      heureArrivee: trajetData.heure_arrivee,
+      heureDepart: heureDepart,
+      heureArrivee: heureArrivee,
       duree: trajetData.duree || "0 min",
       chauffeur: trajetData.chauffeur || "",
       vehicule: trajetData.vehicule || "",

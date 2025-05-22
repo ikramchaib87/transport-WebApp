@@ -98,6 +98,36 @@ exports.gettrajets = async (req, res) => {
   }
 };
 
+exports.getplan = async (req, res) => {
+  try {
+    const { chauffeur } = req.query;
+    if (!chauffeur) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Paramètre "chauffeur" manquant' 
+      });
+    }
+    // Requête modifiée pour une meilleure correspondance
+    const query = `
+      SELECT t.*, l.name as ligne_name 
+      FROM trajets t
+      LEFT JOIN lines l ON t.ligne_id = l.id
+      WHERE TRIM(t.chauffeur) ILIKE TRIM($1)
+      ORDER BY t.heure_depart ASC
+    `;
+    const result = await pool.query(query, [`%${chauffeur}%`]);
+    console.log('Résultats de la requête:', result.rows); // Debug
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erreur serveur:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur serveur',
+      details: err.message 
+    });
+  }
+};
+
 // Route pour mettre à jour un trajet
 exports.updatetrajets = async (req, res) => {
   const client = await pool.connect();
